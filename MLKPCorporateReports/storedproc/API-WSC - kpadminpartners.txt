@@ -1,0 +1,44 @@
+
+
+USE `kpadminpartners`;
+
+/* Procedure structure for procedure `HOgetpartners` */
+
+DROP PROCEDURE IF EXISTS  `HOgetpartners` ;
+
+DELIMITER $$
+
+CREATE  PROCEDURE `HOgetpartners`(IN accountid VARCHAR(20),IN _type VARCHAR(10), IN _userid VARCHAR(100))
+BEGIN
+IF _type = "API" THEN
+	SET @query= CONCAT('SELECT al.accountname ,al.accountid,i.integrationtype FROM kpadminpartners.accountlist al 
+			INNER JOIN `kpadminpartners`.`accountintegration` i ON i.accountid=al.accountid
+			WHERE al.isactive = 1 and `integrationtype` IN (''1'') AND AccountType NOT IN (''MLBPP'',''MLPSP'') 
+			and if(''',accountid,'''='''',1,al.accountid = ''',accountid,''' 
+			and if((SELECT userid FROM `kpadminpartners`.`partnersusers` WHERE accountid=''',accountid,''' and userid=''',_userid,''') is not null,1,0)
+			) GROUP BY accountname;');
+ELSEIF _type = "WSCOR" THEN
+	SET @query= CONCAT('SELECT al.accountname ,al.accountid,i.integrationtype FROM kpadminpartners.accountlist al 
+			INNER JOIN `kpadminpartners`.`accountintegration` i ON i.accountid=al.accountid
+			INNER JOIN `kpadminpartners`.`accountdetail` ad ON ad.isreceipt=1 AND ad.accountid=al.accountid
+			WHERE al.isactive = 1 AND `integrationtype` IN ( ''3'') AND AccountType NOT IN (''MLBPP'',''MLPSP'') 
+			AND IF((SELECT subaccountid FROM `kpadminpartners`.`wssubagents` WHERE subaccountid=al.accountid LIMIT 1) IS NOT NULL,0,1)
+			AND IF(''''='''',1,al.accountid = ''''
+			AND IF((SELECT mainaccountid FROM `kpadminpartners`.`wssubagents` WHERE mainaccountid='''' LIMIT 1) IS NOT NULL,1,
+			IF((SELECT userid FROM `kpadminpartners`.`partnersusers` WHERE accountid='''' AND userid='''') IS NOT NULL,1,0))
+			) GROUP BY accountname;	');		
+ELSEIF _type = "WSC" THEN
+	SET @query= CONCAT('SELECT al.accountname ,al.accountid,i.integrationtype FROM kpadminpartners.accountlist al 
+			INNER JOIN `kpadminpartners`.`accountintegration` i ON i.accountid=al.accountid
+			WHERE al.isactive = 1 and `integrationtype` IN ( ''3'') AND AccountType NOT IN (''MLBPP'',''MLPSP'') 
+			AND IF((SELECT subaccountid FROM `kpadminpartners`.`wssubagents` WHERE subaccountid=al.accountid LIMIT 1) IS NOT NULL,0,1)
+			AND IF(''',accountid,'''='''',1,al.accountid = ''',accountid,'''
+			AND IF((SELECT mainaccountid FROM `kpadminpartners`.`wssubagents` WHERE mainaccountid=''',accountid,''' LIMIT 1) IS NOT NULL,1,
+			IF((SELECT userid FROM `kpadminpartners`.`partnersusers` WHERE accountid=''',accountid,''' AND userid=''',_userid,''') IS NOT NULL,1,0))
+			) GROUP BY accountname;	');		
+END IF;
+	PREPARE StrSQL FROM @query;
+	EXECUTE StrSQL;
+	DEALLOCATE PREPARE StrSQL;
+ END $$
+DELIMITER ;

@@ -1,0 +1,47 @@
+DELIMITER $$
+
+USE `kpdomestic`$$
+
+DROP PROCEDURE IF EXISTS `HOgetWalletLoadingWTR`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetWalletLoadingWTR`(IN accountCode VARCHAR(30),IN _datefrom VARCHAR(15),IN _dateto VARCHAR(15))
+BEGIN
+DECLARE _monthdate VARCHAR(4);
+DECLARE _year VARCHAR(4);
+DROP  TEMPORARY  TABLE IF EXISTS `kpdomestic`.tmpwallettxn;
+CREATE  TEMPORARY TABLE `kpdomestic`.tmpwallettxn(kptn VARCHAR(100) ,activitytype VARCHAR(100),transdate VARCHAR(100) ,sendername VARCHAR(100) ,principal VARCHAR(100) ,
+currency VARCHAR(100),charge VARCHAR(100) ,sobranch VARCHAR(100) ,sobcode VARCHAR(100),sooperator VARCHAR(100),receivername VARCHAR(100) ,
+claimeddate VARCHAR(100),pobranch VARCHAR(100),pobcode VARCHAR(100),pooperator VARCHAR(100),sendercontactno VARCHAR(100),sendaddress VARCHAR(100),
+receivercontactno VARCHAR(100),idtype VARCHAR(100),receiveridno VARCHAR(100),receiveraddress VARCHAR(100),walletno VARCHAR(100),
+operatorid VARCHAR(100),custid VARCHAR(100),username VARCHAR(100),branchcode VARCHAR(100),zonecode VARCHAR(100));
+WHILE DATE(_datefrom) <= DATE(_dateto) DO
+SET _monthdate = DATE_FORMAT(_datefrom,'%m%d');
+SET _year = DATE_FORMAT(_datefrom,'%Y');
+	
+SET @n_query= CONCAT('insert into `kpdomestic`.tmpwallettxn(kptn ,activitytype,transdate ,sendername ,principal ,currency,charge ,sobranch ,
+sobcode,sooperator,receivername ,claimeddate,pobranch,pobcode,pooperator,sendercontactno,sendaddress,receivercontactno,idtype,receiveridno,
+receiveraddress,walletno,operatorid,custid,username,branchcode,zonecode)'
+'SELECT 
+kptnno AS kptn ,''SENDOUT TO WALLET'' AS activitytype,sodate AS transdate ,sendername ,principal ,currency,servicecharge AS charge ,
+sobranch ,'''' as sobcode,CONCAT(bu.firstname,'' '',bu.middlename,'' '',bu.lastname) AS sooperator,receivername,claimeddate,'''' as pobranch,
+'''' as pobcode,'''' as pooperator,sendercontactno,senderstreet AS sendaddress,receivercontactno,idtype,'''' AS receiveridno,receiverstreet AS receiveraddress,
+'''' as walletno,operatorid,custid,'''' as username,p.branchcode,p.zonecode
+FROM `kpdomestic`.payout',_monthdate,' p
+INNER JOIN kpusers.sysuseraccounts su ON su.userlogin=p.operatorid
+INNER JOIN kpusers.branchusers bu ON bu.resourceid=su.resourceid
+WHERE kptnno LIKE ''%mlw%'' AND controlno LIKE ''%lp%'' AND YEAR(p.claimeddate)=',_year,' ORDER BY transdate ASC;
+');						
+SET _datefrom = DATE_ADD(_datefrom, INTERVAL 1 DAY);                 
+PREPARE StrSQL FROM @n_query;
+EXECUTE StrSQL;
+END WHILE;
+SET @sql3=CONCAT('select kptn ,activitytype,if(transdate is null,''0000-00-00 00:00:00'',transdate) as transdate ,sendername ,principal ,
+currency,charge ,sobranch ,sobcode,sooperator,receivername ,if(claimeddate is null,''0000-00-00 00:00:00'',claimeddate) as claimeddate,
+pobranch,pobcode,pooperator,sendercontactno,sendaddress,receivercontactno,idtype,receiveridno,
+receiveraddress,walletno,operatorid,custid,username,branchcode,zonecode
+from `kpdomestic`.tmpwallettxn; ');
+PREPARE gtpo3 FROM @sql3;
+EXECUTE gtpo3;
+END$$
+
+DELIMITER ;

@@ -1,0 +1,81 @@
+DELIMITER $$
+
+USE `kppartners`$$
+
+DROP PROCEDURE IF EXISTS `HOgetTerminalReading`$$
+
+CREATE  PROCEDURE `HOgetTerminalReading`(IN datefrom VARCHAR(15),IN dateto VARCHAR(15), IN accountCode VARCHAR(35),IN _username VARCHAR(50),IN _role VARCHAR(50),IN _terminalid VARCHAR(50),IN _locationid VARCHAR(50))
+BEGIN
+	DECLARE _monthdate VARCHAR(4);
+	DECLARE _year VARCHAR(4);
+	DECLARE _date VARCHAR(15);
+	
+	DROP  TEMPORARY  TABLE IF EXISTS kppartners.tmpsmterminalreading;
+	CREATE  TEMPORARY TABLE kppartners.tmpsmterminalreading(terminalid VARCHAR(30),tin VARCHAR(30),permitno VARCHAR(30),ornomin VARCHAR(50),ornomax VARCHAR(50),transdate VARCHAR(30),transcount VARCHAR(30),oldgrandtotal VARCHAR(30),principal VARCHAR(30),servicefee VARCHAR(30),
+	totalamount VARCHAR(30),newgrandtotal VARCHAR(30),voidtxn VARCHAR(30));
+	
+	WHILE DATE(datefrom) <= DATE(dateto) DO
+		SET _monthdate = DATE_FORMAT(datefrom,'%m%d');
+		SET _year = DATE_FORMAT(datefrom,'%Y');
+		SET _date = DATE_FORMAT(datefrom,'%Y-%m-%d');
+		
+		SET @n_query= CONCAT('INSERT INTO kppartners.tmpsmterminalreading(terminalid,tin,permitno,ornomin,ornomax,transdate,transcount,oldgrandtotal,principal,servicefee,totalamount,newgrandtotal,voidtxn)'
+		'select  terminalid,tin,permitno,ornomin,ornomax,transdate,transcount,oldgrandtotal,principal,servicefee,totalamount,newgrandtotal,voidtxn
+		from (SELECT ord1.terminalid as terminalid,wsl.subLocationTIN as tin,'''' as permitno,
+		
+		(select or1.orno from kpORNO.orDetails or1 where or1.accountid=''',accountCode,'''   and date(or1.datecreated)=''',datefrom,'''
+		AND IF (''',_role,''' = ''KP-PARTNERTELLER'',or1.syscreator = ''',_username,''',
+		#IF (''',_role,''' = ''KP-SUPERVISOR'',or1.syscreator = ''',_username,''' and or1.locationid=''',_locationid,''',1))
+		IF (''',_role,''' = ''KP-SUPERVISOR'',or1.locationid=''',_locationid,''',1))
+		order by or1.datecreated asc limit 1) as ornomin ,
+		
+		(select or1.orno from kpORNO.orDetails or1 where or1.accountid=''',accountCode,'''  and date(or1.datecreated)=''',datefrom,'''
+		AND IF (''',_role,''' = ''KP-PARTNERTELLER'',or1.syscreator = ''',_username,''',
+		#IF (''',_role,''' = ''KP-SUPERVISOR'',or1.syscreator = ''',_username,''' and or1.locationid=''',_locationid,''',1))
+		IF (''',_role,''' = ''KP-SUPERVISOR'',or1.locationid=''',_locationid,''',1))
+		order by or1.datecreated desc limit 1) as ornomax ,
+		
+		count(s.kptn) as transcount,0 as oldgrandtotal,sum(s.principal) as principal,sum(s.charge) as servicefee,
+		(sum(s.principal) + sum(s.charge)) as totalamount,0 as newgrandtotal,IF(s.cancelreason=''CANCEL'',count(s.kptn),0) as voidtxn,
+		s.transdate
+		FROM kppartners.sendout',_monthdate,' s 
+		INNER JOIN kppartners.sotxnref sf ON sf.accountcode=s.accountcode AND sf.referenceno=s.referenceno
+		INNER JOIN kpORNO.orDetails ord1 on ord1.accountid=s.accountcode and ord1.refno=s.referenceno
+		INNER JOIN `kpadminpartners`.`ws_Sublocation` wsl on  wsl.isactive=1 and wsl.sublocationid=ord1.locationid and wsl.subAccountID=ord1.accountid
+		WHERE s.accountcode=''',accountCode,''' and year(s.transdate)=',_year,' AND sf.transactiontype IN (''3'')
+		AND IF (''',_role,''' = ''KP-PARTNERTELLER'',s.operatorid = ''',_username,''',
+		#IF (''',_role,''' = ''KP-SUPERVISOR'',s.operatorid = ''',_username,''' and ord1.locationid=''',_locationid,''',1))
+		IF (''',_role,''' = ''KP-SUPERVISOR'',ord1.locationid=''',_locationid,''',1))
+		group by date(s.transdate)
+		)x
+		');
+		SET datefrom = DATE_ADD(datefrom, INTERVAL 1 DAY); 
+		PREPARE StrSQL FROM @n_query;
+		EXECUTE StrSQL;               
+	END WHILE;
+		
+	
+	
+	DROP    TABLE IF EXISTS kppartners.tmpsm2;
+	CREATE   TABLE kppartners.tmpsm2(transdate VARCHAR(50),terminalid VARCHAR(30),ornomin VARCHAR(50),ornomax VARCHAR(50));
+		
+	SET @sql3= CONCAT('INSERT INTO kppartners.tmpsm2(transdate,terminalid,ornomin,ornomax)'
+		'select transdate,terminalid,ornomin,ornomax from kppartners.tmpsmterminalreading;');
+	PREPARE gtpo3 FROM @sql3;
+	EXECUTE gtpo3;
+	
+	SET @sql4=CONCAT('select terminalid,tin,permitno,
+	#concat((select ornomin from kppartners.tmpsm2 a WHERE date(a.transdate)=date(c.transdate) order by a.transdate asc limit 1),
+	concat((select ornomin from kppartners.tmpsm2 a order by a.transdate asc limit 1),
+	'' to '',
+	(select ornomax from kppartners.tmpsm2 b order by b.transdate desc   limit 1)
+	) as receiptno,
+	date(transdate) as transdate,sum(transcount) as transcount,sum(oldgrandtotal) as oldgrandtotal,sum(principal) as principal,
+	sum(servicefee) as servicefee,sum(totalamount) as totalamount,sum(newgrandtotal) as newgrandtotal,sum(voidtxn) as voidtxn
+	from kppartners.tmpsmterminalreading c group by transdate order by transdate asc; ');	
+	PREPARE gtpo4 FROM @sql4;
+	EXECUTE gtpo4;
+	
+    END$$
+
+DELIMITER ;

@@ -1,0 +1,216 @@
+DELIMITER $$
+
+USE `kp8reportsdb`$$
+
+DROP PROCEDURE IF EXISTS `Kp8MLExpress_Claimed`$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Kp8MLExpress_Claimed`(IN _db VARCHAR(100),IN _year VARCHAR(4),IN custid VARCHAR(35),IN _zonecode VARCHAR(1),IN _regioncode VARCHAR(3),IN _areacode VARCHAR(1),IN _branchcode VARCHAR(3),IN _usertype VARCHAR(10),IN _oldzonecode VARCHAR(1))
+BEGIN
+IF _usertype = "NOTIAD" THEN #NOT IAD USER
+		SET @n_query= CONCAT('
+		select 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(cancelleddate,''%Y-%m-%d %r'') AS cancelleddate,DATE_FORMAT(cancelleddate,''%r'') AS TIME,
+		if(Receiver_Phone is null,'''',Receiver_Phone) as Receiver_Phone,
+		if(operator is null,operatorid,operator) as Operator,currency,if(cancelreason is null,'''',cancelreason) as cancelreason,
+		branchcode,principal,if(charge is null,0,charge) as charge,adjprincipal,adjCharge,
+		socancelprincipal,socancelcharge,if(flag is null,'''',flag) as flag,if(branchname is null,'''',branchname) as branchname,
+		if(commission is null,0,commission) as commission,zonecode,operatorid,if(operator is null,operatorid,operator) as  partnername
+		from(
+		SELECT 
+		p.controlno,pc.kptn,pc.kptn AS referenceno,
+		p.sendername,p.receivername,
+		sodate AS transdate,
+		 claimeddate AS cancelleddate,DATE_FORMAT( claimeddate,''%r'') AS TIME, ReceiverContactNo AS Receiver_Phone,
+		IF( (SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=IF( isremote=1,  remoteoperatorid,  operatorid) LIMIT 1) IS NULL,
+		(SELECT fullname FROM kpusers.adminbranchusers b INNER JOIN kpusers.adminsysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=IF( isremote=1,  remoteoperatorid,  operatorid) LIMIT 1),
+		(SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=IF( isremote=1,  remoteoperatorid,  operatorid) LIMIT 1)
+		) AS Operator, currency, cancelledreason AS cancelreason,
+		(SELECT branchname FROM kpusers.branches WHERE branchcode= branchcode AND zonecode= zonecode LIMIT 1) AS branchcode,
+		 principal, servicecharge AS charge,
+		IF( cancelledreason IS NOT NULL, principal * -1,0) AS adjprincipal,
+		IF( cancelledreason IS NOT NULL, servicecharge * -1,0) AS adjCharge,
+		 principal AS socancelprincipal,IF( servicecharge IS NULL,0, servicecharge) AS socancelcharge,		
+		IF( cancelledreason IS NOT NULL, 
+		IF( CancelledReason IN(''RETURN TO Sender''),''*'',IF( CancelledReason IN(''wrong payout''),''**'','''' )),'''') AS flag,
+		(SELECT branchname FROM kpusers.branches WHERE p.branchcode= branchcode AND p.zonecode= zonecode LIMIT 1) AS branchname,pc.commission,
+         	IF( isremote=1, RemoteZoneCode,p.zonecode) AS zonecode, operatorid, '''' AS partnername		
+		FROM ',_db,' p
+		INNER JOIN `kp8forms`.`PayoutCommission` pc ON   pc.kptn= p.kptn
+		#INNER JOIN kpusers.branches b ON b.branchcode = '',branchcode,'' AND b.zonecode = '',zonecode,''	
+		WHERE isactive=1 AND YEAR(transdate)=',_year,' 
+		AND p.controlno LIKE ''%op%'' 
+		AND  operatorid=''',custid,''')x group by kptn
+		');
+ELSEIF _usertype = "IAD" THEN #IAD USER
+	IF custid = "" THEN #NO SPECIFIC PARTNER - FOR SUMMARY REPORT
+		IF _branchcode<>"" AND _areacode<>"" AND _regioncode<>"" THEN # BY BRANCH
+		SET @n_query= CONCAT('
+		select 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(cancelleddate,''%Y-%m-%d %r'') AS cancelleddate,DATE_FORMAT(cancelleddate,''%r'') AS TIME,
+		if(Receiver_Phone is null,'''',Receiver_Phone) as Receiver_Phone,
+		if(operator is null,operatorid,operator) as Operator,currency,if(cancelreason is null,'''',cancelreason) as cancelreason,
+		branchcode,principal,if(charge is null,0,charge) as charge,adjprincipal,adjCharge,
+		socancelprincipal,socancelcharge,if(flag is null,'''',flag) as flag,if(branchname is null,'''',branchname) as branchname,
+		if(commission is null,0,commission) as commission,zonecode,operatorid,if(operator is null,operatorid,operator) as  partnername
+		from(
+		SELECT 
+		p.controlno,pc.kptn,pc.kptn AS referenceno,
+		p.sendername,p.receivername,
+		sodate AS transdate,
+		 claimeddate AS cancelleddate,DATE_FORMAT( claimeddate,''%r'') AS TIME, ReceiverContactNo AS Receiver_Phone,
+		IF( (SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=IF( isremote=1,  remoteoperatorid,  operatorid) LIMIT 1) IS NULL,
+		(SELECT fullname FROM kpusers.adminbranchusers b INNER JOIN kpusers.adminsysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=IF( isremote=1,  remoteoperatorid,  operatorid) LIMIT 1),
+		(SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=IF( isremote=1,  remoteoperatorid,  operatorid) LIMIT 1)
+		) AS Operator, currency, cancelledreason AS cancelreason,
+		(SELECT branchname FROM kpusers.branches WHERE branchcode= branchcode AND zonecode= zonecode LIMIT 1) AS branchcode,
+		 principal, servicecharge AS charge,
+		IF( cancelledreason IS NOT NULL, principal * -1,0) AS adjprincipal,
+		IF( cancelledreason IS NOT NULL, servicecharge * -1,0) AS adjCharge,
+		 principal AS socancelprincipal,IF( servicecharge IS NULL,0, servicecharge) AS socancelcharge,		
+		IF( cancelledreason IS NOT NULL, 
+		IF( CancelledReason IN(''RETURN TO Sender''),''*'',IF( CancelledReason IN(''wrong payout''),''**'','''' )),'''') AS flag,
+		(SELECT branchname FROM kpusers.branches WHERE p.branchcode= branchcode AND p.zonecode= zonecode LIMIT 1) AS branchname,pc.commission,
+         	IF( isremote=1, RemoteZoneCode,p.zonecode) AS zonecode, operatorid, '''' AS partnername		
+		FROM ',_db,' p
+		INNER JOIN `kp8forms`.`PayoutCommission` pc ON   pc.kptn= p.kptn
+		#INNER JOIN kpusers.branches b ON b.branchcode = '',branchcode,'' AND b.zonecode = '',zonecode,''	
+		WHERE isactive=1 AND YEAR(transdate)=',_year,' 
+		AND p.controlno LIKE ''%op%'' 
+		AND IF(p.isremote=1,p.remotebranch,p.branchcode)=',_branchcode,' 
+		AND (IF(p.isremote=1,p.remotezonecode,p.zonecode)=',_zonecode,' or IF(p.isremote=1,p.remotezonecode,p.zonecode)=',_oldzonecode,')
+		#AND  operatorid=''',custid,'''
+		)x group by kptn
+		
+		');
+		END IF;
+	ELSEIF custid <> "" THEN #WITH SPECIFIC PARTNER 
+		IF _branchcode<>"" AND _areacode<>"" AND _regioncode<>"" THEN #BY BRANCH
+		SET @n_query= CONCAT('
+		select 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(cancelleddate,''%Y-%m-%d %r'') AS cancelleddate,DATE_FORMAT(cancelleddate,''%r'') AS TIME,
+		if(Receiver_Phone is null,'''',Receiver_Phone) as Receiver_Phone,
+		if(operator is null,operatorid,operator) as Operator,currency,if(cancelreason is null,'''',cancelreason) as cancelreason,
+		branchcode,principal,if(charge is null,0,charge) as charge,adjprincipal,adjCharge,
+		socancelprincipal,socancelcharge,if(flag is null,'''',flag) as flag,if(branchname is null,'''',branchname) as branchname,
+		if(commission is null,0,commission) as commission,zonecode,operatorid,if(operator is null,operatorid,operator) as  partnername
+		from(
+		SELECT 
+		p.controlno,pc.kptn,pc.kptn AS referenceno,
+		p.sendername,p.receivername,
+		sodate AS transdate,
+		 claimeddate AS cancelleddate,DATE_FORMAT( claimeddate,''%r'') AS TIME, ReceiverContactNo AS Receiver_Phone,
+		IF( (SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=IF( isremote=1,  remoteoperatorid,  operatorid) LIMIT 1) IS NULL,
+		(SELECT fullname FROM kpusers.adminbranchusers b INNER JOIN kpusers.adminsysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=IF( isremote=1,  remoteoperatorid,  operatorid) LIMIT 1),
+		(SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=IF( isremote=1,  remoteoperatorid,  operatorid) LIMIT 1)
+		) AS Operator, currency, cancelledreason AS cancelreason,
+		(SELECT branchname FROM kpusers.branches WHERE branchcode= branchcode AND zonecode= zonecode LIMIT 1) AS branchcode,
+		 principal, servicecharge AS charge,
+		IF( cancelledreason IS NOT NULL, principal * -1,0) AS adjprincipal,
+		IF( cancelledreason IS NOT NULL, servicecharge * -1,0) AS adjCharge,
+		 principal AS socancelprincipal,IF( servicecharge IS NULL,0, servicecharge) AS socancelcharge,		
+		IF( cancelledreason IS NOT NULL, 
+		IF( CancelledReason IN(''RETURN TO Sender''),''*'',IF( CancelledReason IN(''wrong payout''),''**'','''' )),'''') AS flag,
+		(SELECT branchname FROM kpusers.branches WHERE p.branchcode= branchcode AND p.zonecode= zonecode LIMIT 1) AS branchname,pc.commission,
+         	IF( isremote=1, RemoteZoneCode,p.zonecode) AS zonecode, operatorid, '''' AS partnername		
+		FROM ',_db,' p
+		INNER JOIN `kp8forms`.`PayoutCommission` pc ON   pc.kptn= p.kptn
+		#INNER JOIN kpusers.branches b ON b.branchcode = '',branchcode,'' AND b.zonecode = '',zonecode,''	
+		WHERE isactive=1 AND YEAR(transdate)=',_year,' 
+		AND p.controlno LIKE ''%op%'' 
+		AND IF(p.isremote=1,p.remotebranch,p.branchcode)=',_branchcode,' 
+		AND (IF(p.isremote=1,p.remotezonecode,p.zonecode)=',_zonecode,' or IF(p.isremote=1,p.remotezonecode,p.zonecode)=',_oldzonecode,')
+		AND  operatorid=''',custid,'''
+		)x group by kptn
+		
+		');
+		ELSEIF _branchcode="" AND _areacode<>"" AND _regioncode<>"" THEN #BY AREA
+		SET @n_query= CONCAT('
+		select 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(cancelleddate,''%Y-%m-%d %r'') AS cancelleddate,DATE_FORMAT(cancelleddate,''%r'') AS TIME,
+		if(Receiver_Phone is null,'''',Receiver_Phone) as Receiver_Phone,
+		if(operator is null,operatorid,operator) as Operator,currency,if(cancelreason is null,'''',cancelreason) as cancelreason,
+		branchcode,principal,if(charge is null,0,charge) as charge,adjprincipal,adjCharge,
+		socancelprincipal,socancelcharge,if(flag is null,'''',flag) as flag,if(branchname is null,'''',branchname) as branchname,
+		if(commission is null,0,commission) as commission,zonecode,operatorid,if(operator is null,operatorid,operator) as  partnername
+		from(
+		SELECT 
+		p.controlno,pc.kptn,pc.kptn AS referenceno,
+		p.sendername,p.receivername,
+		sodate AS transdate,
+		 claimeddate AS cancelleddate,DATE_FORMAT( claimeddate,''%r'') AS TIME, ReceiverContactNo AS Receiver_Phone,
+		IF( (SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=IF( isremote=1,  remoteoperatorid,  operatorid) LIMIT 1) IS NULL,
+		(SELECT fullname FROM kpusers.adminbranchusers b INNER JOIN kpusers.adminsysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=IF( isremote=1,  remoteoperatorid,  operatorid) LIMIT 1),
+		(SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=IF( isremote=1,  remoteoperatorid,  operatorid) LIMIT 1)
+		) AS Operator, currency, cancelledreason AS cancelreason,
+		(SELECT branchname FROM kpusers.branches WHERE branchcode= branchcode AND zonecode= zonecode LIMIT 1) AS branchcode,
+		 principal, servicecharge AS charge,
+		IF( cancelledreason IS NOT NULL, principal * -1,0) AS adjprincipal,
+		IF( cancelledreason IS NOT NULL, servicecharge * -1,0) AS adjCharge,
+		 principal AS socancelprincipal,IF( servicecharge IS NULL,0, servicecharge) AS socancelcharge,		
+		IF( cancelledreason IS NOT NULL, 
+		IF( CancelledReason IN(''RETURN TO Sender''),''*'',IF( CancelledReason IN(''wrong payout''),''**'','''' )),'''') AS flag,
+		(SELECT branchname FROM kpusers.branches WHERE p.branchcode= branchcode AND p.zonecode= zonecode LIMIT 1) AS branchname,pc.commission,
+         	IF( isremote=1, RemoteZoneCode,p.zonecode) AS zonecode, operatorid, '''' AS partnername		
+		FROM ',_db,' p
+		INNER JOIN `kp8forms`.`PayoutCommission` pc ON   pc.kptn= p.kptn
+		INNER JOIN kpusers.branches b on b.branchcode=if(p.isremote=1,p.remotebranch,p.branchcode) 
+		and b.zonecode=',_zonecode,' and b.oldzonecode=',_oldzonecode,' and b.areacode=''',_areacode,''' and b.regioncode=',_regioncode,'
+		WHERE isactive=1 AND YEAR(transdate)=',_year,' 
+		AND p.controlno LIKE ''%op%'' 
+		AND (IF(p.isremote=1,p.remotezonecode,p.zonecode)=',_zonecode,' or IF(p.isremote=1,p.remotezonecode,p.zonecode)=',_oldzonecode,')
+		AND  operatorid=''',custid,'''
+		)x group by kptn
+		');
+		ELSEIF _branchcode="" AND _areacode="" AND _regioncode<>"" THEN #BY REGION
+		SET @n_query= CONCAT('
+		select 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(cancelleddate,''%Y-%m-%d %r'') AS cancelleddate,DATE_FORMAT(cancelleddate,''%r'') AS TIME,
+		if(Receiver_Phone is null,'''',Receiver_Phone) as Receiver_Phone,
+		if(operator is null,operatorid,operator) as Operator,currency,if(cancelreason is null,'''',cancelreason) as cancelreason,
+		branchcode,principal,if(charge is null,0,charge) as charge,adjprincipal,adjCharge,
+		socancelprincipal,socancelcharge,if(flag is null,'''',flag) as flag,if(branchname is null,'''',branchname) as branchname,
+		if(commission is null,0,commission) as commission,zonecode,operatorid,if(operator is null,operatorid,operator) as  partnername
+		from(
+		SELECT 
+		p.controlno,pc.kptn,pc.kptn AS referenceno,
+		p.sendername,p.receivername,
+		sodate AS transdate,
+		 claimeddate AS cancelleddate,DATE_FORMAT( claimeddate,''%r'') AS TIME, ReceiverContactNo AS Receiver_Phone,
+		IF( (SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=IF( isremote=1,  remoteoperatorid,  operatorid) LIMIT 1) IS NULL,
+		(SELECT fullname FROM kpusers.adminbranchusers b INNER JOIN kpusers.adminsysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=IF( isremote=1,  remoteoperatorid,  operatorid) LIMIT 1),
+		(SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=IF( isremote=1,  remoteoperatorid,  operatorid) LIMIT 1)
+		) AS Operator, currency, cancelledreason AS cancelreason,
+		(SELECT branchname FROM kpusers.branches WHERE branchcode= branchcode AND zonecode= zonecode LIMIT 1) AS branchcode,
+		 principal, servicecharge AS charge,
+		IF( cancelledreason IS NOT NULL, principal * -1,0) AS adjprincipal,
+		IF( cancelledreason IS NOT NULL, servicecharge * -1,0) AS adjCharge,
+		 principal AS socancelprincipal,IF( servicecharge IS NULL,0, servicecharge) AS socancelcharge,		
+		IF( cancelledreason IS NOT NULL, 
+		IF( CancelledReason IN(''RETURN TO Sender''),''*'',IF( CancelledReason IN(''wrong payout''),''**'','''' )),'''') AS flag,
+		(SELECT branchname FROM kpusers.branches WHERE p.branchcode= branchcode AND p.zonecode= zonecode LIMIT 1) AS branchname,pc.commission,
+         	IF( isremote=1, RemoteZoneCode,p.zonecode) AS zonecode, operatorid, '''' AS partnername		
+		FROM ',_db,' p
+		INNER JOIN `kp8forms`.`PayoutCommission` pc ON   pc.kptn= p.kptn
+		INNER JOIN kpusers.branches b on b.branchcode=if(p.isremote=1,p.remotebranch,p.branchcode) 
+		and b.zonecode=',_zonecode,' and b.oldzonecode=',_oldzonecode,'  and b.regioncode=',_regioncode,'
+		WHERE isactive=1 AND YEAR(transdate)=',_year,' 
+		AND p.controlno LIKE ''%op%'' 
+		AND (IF(p.isremote=1,p.remotezonecode,p.zonecode)=',_zonecode,' or IF(p.isremote=1,p.remotezonecode,p.zonecode)=',_oldzonecode,')
+		AND  operatorid=''',custid,'''
+		)x group by kptn
+		');
+		END IF;
+	END IF;	
+END IF;
+	
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

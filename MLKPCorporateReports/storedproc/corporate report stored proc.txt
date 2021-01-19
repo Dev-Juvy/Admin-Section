@@ -1,0 +1,149 @@
+FileUpload:
+HOcorporate_fileupload
+HOcorporate_PaymentSolution
+HOgetcancelledpayout
+HOgetcancelledsendout
+HOgetdailypayout
+HOgetdailysendout
+HOgetReturnToSenderReport
+HOgetRfcPaymentSolution
+HOgetRfcTransaction
+Hogetunclaimedtransaction
+
+
+Domestic:
+Accesslogs
+Getlogin
+HOGetExpressDomesticAgentSOClaimed
+HOGetExpressDomesticPO
+
+
+API:
+HOgetpartners
+HOgetcancelledpayout
+HOgetcancelledsendout
+HOgetdailypayout
+HOgetdailypayoutNYB
+HOgetdailysendout
+HOgetReturnToSenderReport
+HOgetRfcPaymentSolution
+HOgetRfcTransaction
+Hogetunclaimedtransaction
+
+
+Billspay:
+BillsPaymentOLDKPTN
+getcancelSOBillspay
+getRFCBillspay
+getsendoutBillspayment
+HOcorporate_Billspayment
+
+
+Mobile:
+express_receiver
+getExpressWalletLoading
+
+
+Express:
+HOcorporate_MLExpress
+HOGetExpressAgentSOClaimed
+HOGetExpressCP
+HOGetExpressCS
+HOGetExpressID
+HOGetExpressPO
+HOGetExpressRFC
+HOGetExpressRTS
+HOGetExpressSO
+HOGetExpressUnclaimed
+
+
+WSC:
+HOgetpartners
+HOgetcancelledpayout
+HOgetcancelledsendout
+HOgetdailypayout
+HOgetdailypayoutNYB
+HOgetdailysendout
+HOgetReturnToSenderReport
+HOgetRfcPaymentSolution
+HOgetRfcTransaction
+Hogetunclaimedtransaction
+
+;
+=============================================================;
+ang remotebranch mao ang giremote;branch jud;
+ang branchcode mao ang nagremote; fsd; 
+
+
+
+
+
+
+
+
+BP;
+CALL kpbillspayment.getsendoutBillspayment ('0619','','2017-06-19','2017-06-19','2017','','1','D','912','1','0');--
+CALL kpbillspayment.getsendoutBillspaymentGlobal ('0619','','2017-06-19','2017-06-19','2017','','1','D','912','1','0');--
+CALL kpbillspayment.getsendoutBillspayment ('0619','MLBPP170336','2017-06-19','2017-06-19','2017','','1','','','1','0');
+CALL kpbillspayment.getsendoutBillspaymentGlobal ('0619','MLBPP170336','2017-06-19','2017-06-19','2017','','1','','','1','0');
+CALL kpbillspayment.getsendoutBillspayment ('0619','MLBPP170336','2017-06-19','2017-06-19','2017','','1','D','','1','0');
+CALL kpbillspayment.getsendoutBillspaymentGlobal ('0619','MLBPP170336','2017-06-19','2017-06-19','2017','','1','D','','1','0');
+CALL kpbillspayment.getsendoutBillspayment ('0619','MLBPP170336','2017-06-19','2017-06-19','2017','','1','D','912','1','0');;
+CALL kpbillspayment.getsendoutBillspaymentGlobal ('0619','MLBPP170336','2017-06-19','2017-06-19','2017','','1','D','912','1','0');
+
+CALL kpbillspayment.getcancelSOBillspay('0619','MLBPP170399','1','1','D','912','2017','','IAD','0');--
+CALL kpbillspayment.getcancelSOBillspayGlobalforCR('0619','MLBPP170399','1','1','D','912','2017','','IAD','0');;--
+
+CALL kpbillspayment.getRFCBillspay('0619','MLBPP170399','1','1','D','912','2017','','IAD','0');--
+CALL kpbillspayment.getRFCBillspayGlobalForCR('0619','MLBPP170399','1','1','D','912','2017','','IAD','0');--
+
+CLAIMED;
+CALL kppartners.HOgetdailypayout('0619','MLCIP140120','1','1','D','912','2017','FILEUPLOAD','IAD','SUYC150961877','KP-IAD','0');--
+
+CALL kpforms.HOGetExpressDomesticPO('0619','2017','MLCIP140120','1','1','D','912','IAD','0');--
+CALL kpOFW.HOGetExpressPO('Reports062017','19','2017','MLCIP140120','1','1','D','912','IAD','0');--
+CALL kppartners.HOgetdailypayoutAPIExpress('0619','2017','MLCIP140120','1','1','D','912','IAD','0');--
+CALL kpmobile.getWalletPayoutExpress('0619','2017','MLCIP140120','1','1','D','912','IAD','0');--
+CALL kppartners.HOgetdailypayoutWSCExpress('0619','2017','MLCIP140120','1','1','D','912','IAD','0');--
+CALL kppartners.HOgetdailypayoutFUExpress('0619','2017','MLCIP140120','1','1','D','912','IAD','0');--
+CALL kptogoadmin.HOgetdailypayoutKPTOGOExpress('0619','2017','MLCIP140120','1','1','D','912','IAD','0');--
+CALL kpformsglobal.HOGetExpressGlobalPO('0619','2017','MLCIP140120','1','1','D','912','IAD','0');--
+
+
+AMMENDMENTS;
+CALL kppartners.HOgetRfcPaymentSolution('0619','MLCIP140131','1','1','D','912','2017','FILEUPLOAD','IAD','SUYC150961877','KP-IAD','0');--
+CALL kpOFW.HOGetExpressRFC('Reports062017','19','2017','MLCIP140131','1','1','D','912','IAD','0');;--
+CALL kppartners.HOgetRfcTransaction('0619','MLCIP140131','1','1','D','912','2017','FILEUPLOAD','IAD','SUYC150961877','KP-IAD','0');;--
+
+CANCEL PO;
+CALL kpOFW.HOGetExpressCP('Reports062017','19','2017','MLCIP140131','1','1','D','912','IAD','0');--
+CALL kpdomestic.HOGetDomesticExpressCPO('0619','1','1','D','912','2017','IAD','MLCIP140131','0');--
+CALL kpmobile.HOWalletGetExpressCP('0619','1','1','D','912','2017','IAD','MLCIP140131','0');--
+CALL kpglobal.HOGetGlobalExpressCPO('0619','1','1','D','912','2017','IAD','MLCIP140131','0');--
+CALL kppartners.HOgetcancelledpayout('0619','MLCIP140131','1','1','D','912','2017','FILEUPLOAD','IAD','SUYC150961877','KP-IAD','0');--
+
+EXPRESS;
+CALL kpOFW.HOGetExpressAgentSOClaimed('Reports062017','19','2017','chelletest06','1','1','D','912','IAD','0');--
+CALL kpOFW.HOGetExpressAgentSOClaimed('Reports06192017','01','2017','chelletest06','1','1','D','912','IAD','0');;
+CALL kpOFW.HOGetExpressAgentSOClaimed('Reports010001','01','0001','chelletest06','1','1','D','912','IAD','0');;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

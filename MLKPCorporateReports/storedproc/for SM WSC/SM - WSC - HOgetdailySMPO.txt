@@ -1,0 +1,26 @@
+DELIMITER $$
+
+USE `kppartners`$$
+
+DROP PROCEDURE IF EXISTS `HOgetdailySMPO`$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `HOgetdailySMPO`(IN potable VARCHAR(4), IN accountCode VARCHAR(35),IN _year VARCHAR(6),IN _username VARCHAR(50),IN _role VARCHAR(50),IN _terminalid VARCHAR(50),IN _locationid VARCHAR(50))
+BEGIN
+SET @n_query= CONCAT('
+(SELECT 
+DISTINCT p.referenceno as txncode,p.sendername AS sender,p.receivername AS receiver,p.principal,(p.servicecharge) AS fee,(p.principal+p.servicecharge) as total
+FROM kppartners.payout',potable,'  p
+INNER JOIN kppartners.potxnref sf ON sf.accountcode=p.accountcode AND sf.referenceno=p.referenceno
+WHERE p.accountcode=''',accountCode,'''  
+AND IF (''',_role,''' = ''KP-PARTNERTELLER'',IF(p.isremote,p.remoteoperatorid,p.operatorid) = ''',_username,''', #and p.stationid=''',_terminalid,''',
+#IF (''',_role,''' = ''KP-SUPERVISOR'',IF(p.isremote,p.remoteoperatorid,p.operatorid) = ''',_username,''' and p.sessionid=''',_locationid,''',1))
+IF (''',_role,''' = ''KP-SUPERVISOR'',p.sessionid=''',_locationid,''',1))
+AND YEAR(p.claimeddate)=',_year,' AND p.reason NOT IN (''CHANGE Details'') AND sf.transactiontype IN (''3'')
+)
+');
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

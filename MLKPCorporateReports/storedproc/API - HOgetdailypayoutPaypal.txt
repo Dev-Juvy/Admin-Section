@@ -1,0 +1,39 @@
+DELIMITER $$
+
+USE `kppartners`$$
+
+DROP PROCEDURE IF EXISTS `HOgetdailypayoutPaypal`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetdailypayoutPaypal`(IN potable VARCHAR(4), IN accountCode VARCHAR(30),IN _year VARCHAR(5))
+BEGIN
+SET @n_query= CONCAT('SELECT 
+DISTINCT IF(oldkptn IS NULL,p.kptn,oldkptn) AS kptn,
+IF(oldkptn IS NULL,p.referenceno,oldkptn) AS referenceno,
+p.sendercountry,p.sendername,p.senderaddress,p.claimeddate,
+p.receivername,p.receiveraddress,receivercontactno,idtype,idno,p.Currency,
+principal,p.branchcode,IF(p.isremote=1,p.remotezonecode,p.zonecode) AS zonecode,
+b.branchname,b.address AS branchaddress,
+(
+IF (
+(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu WHERE pu.userid=IF(p.isremote,p.remoteoperatorid,p.operatorid) LIMIT 1) IS NULL,
+IF( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin= IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1) IS NULL,
+    (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1),
+    (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1)),
+(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu WHERE pu.userid=IF(p.isremote,p.remoteoperatorid,p.operatorid) LIMIT 1)
+)
+) AS Operator,
+reason AS cancelreason,controlno,
+(SELECT so.transdate FROM `kppartnerstransactions`.`corporatesendouts` so WHERE so.kptn=IF(p.oldkptn IS NULL,p.kptn,p.oldkptn) LIMIT 1) AS transdate,
+(servicecharge + CancelledCustCharge + CancelledEmpCharge) AS servicecharge,0 AS charge,
+IF(p.isremote,p.remoteoperatorid,p.operatorid) AS operatorid
+FROM kppartners.payout',potable,'  p
+LEFT JOIN kpusers.branches b ON b.branchcode=p.branchcode AND b.zonecode=IF(p.isremote=1,p.remotezonecode,p.zonecode)
+INNER JOIN kppartners.potxnref sf ON sf.accountcode=p.accountcode AND sf.referenceno=p.referenceno
+WHERE p.accountcode=''',accountCode,'''  AND YEAR(p.claimeddate)=',_year,' AND p.reason NOT IN (''CHANGE Details'',''RETURN TO Sender'') AND sf.transactiontype IN (''1'') 
+');														
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

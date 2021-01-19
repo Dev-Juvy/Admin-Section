@@ -1,0 +1,28 @@
+DELIMITER $$
+
+USE `kppartners`$$
+
+DROP PROCEDURE IF EXISTS `HOgetdailySMSTRSO`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetdailySMSTRSO`(IN sotable VARCHAR(4), IN accountCode VARCHAR(35),IN _year VARCHAR(6))
+BEGIN
+SET @n_query= CONCAT('
+select bcode,bname,transdate,itemcount,principal,fee,total from (
+SELECT 
+DISTINCT if(a.locationCode is null,''-'',a.locationCode) as bcode,
+a.accountname as bname,s.transdate,count(s.kptn) AS itemcount,
+sum(s.principal) as principal,sum(s.charge) AS fee, (sum(s.principal)+sum(s.charge)) AS total
+FROM kppartners.sendout',sotable,' s 
+INNER JOIN kppartnerstransactions.corporatesendouts so ON so.kptn=s.kptn
+inner join kpadminpartners.accountlist a on a.accountid=''',accountCode,'''
+INNER JOIN kppartners.sotxnref sf ON sf.accountcode=so.accountid AND sf.referenceno=so.referenceno
+WHERE s.accountcode=''',accountCode,''' AND 
+YEAR(s.transdate)=',_year,'  AND sf.transactiontype IN (''3'')
+GROUP BY a.accountname )x;
+');
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

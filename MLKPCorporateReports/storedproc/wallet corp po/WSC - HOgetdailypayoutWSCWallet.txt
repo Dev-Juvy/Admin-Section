@@ -1,0 +1,115 @@
+DELIMITER $$
+
+USE `kppartners`$$
+
+DROP PROCEDURE IF EXISTS `HOgetdailypayoutWSCWallet`$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `HOgetdailypayoutWSCWallet`(IN _datefrom VARCHAR(15),IN _dateto VARCHAR(15) )
+BEGIN
+DECLARE _monthdate VARCHAR(4);
+DECLARE _year VARCHAR(4);
+DROP  TEMPORARY  TABLE IF EXISTS kppartners.walletpo;
+CREATE  TEMPORARY TABLE kppartners.walletpo(controlno VARCHAR(100) , kptn VARCHAR(100) , referenceno VARCHAR(100) , sendername VARCHAR(100) , receivername VARCHAR(100) , 
+transdate VARCHAR(100) , cancelleddate VARCHAR(100) , TIME VARCHAR(100) , Receiver_Phone VARCHAR(100) , 
+Operator VARCHAR(100) , currency VARCHAR(100) , cancelreason VARCHAR(100) , 
+branchcode VARCHAR(100) , principal VARCHAR(100) , charge VARCHAR(100) , adjprincipal VARCHAR(100) , adjCharge VARCHAR(100) , 
+socancelprincipal VARCHAR(100) , socancelcharge VARCHAR(100) , flag VARCHAR(100) , branchname VARCHAR(100) , 
+commission VARCHAR(100) , zonecode VARCHAR(100) , operatorid VARCHAR(100) ,  partnername VARCHAR(100), walletno VARCHAR(100));
+WHILE DATE(_datefrom) <= DATE(_dateto) DO
+SET _monthdate = DATE_FORMAT(_datefrom,'%m%d');
+SET _year = DATE_FORMAT(_datefrom,'%Y');
+
+	SET @n_query = CONCAT('insert into kppartners.walletpo(controlno , kptn , referenceno , sendername , receivername , 
+transdate , cancelleddate , TIME , Receiver_Phone , 
+Operator , currency , cancelreason , 
+branchcode , principal , charge , adjprincipal , adjCharge , 
+socancelprincipal , socancelcharge , flag , branchname , 
+commission , zonecode , operatorid ,  partnername, walletno)'
+
+ 'SELECT 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(cancelleddate,''%Y-%m-%d %r'') AS cancelleddate,DATE_FORMAT(cancelleddate,''%r'') AS TIME,
+		IF(Receiver_Phone IS NULL,'''',Receiver_Phone) AS Receiver_Phone,
+		 Operator,currency,IF(cancelreason IS NULL,'''',cancelreason) AS cancelreason,
+		branchcode,principal,IF(charge IS NULL,0,charge) AS charge,adjprincipal,adjCharge,
+		socancelprincipal,socancelcharge,IF(flag IS NULL,'''',flag) AS flag,IF(branchname IS NULL,'''',branchname) AS branchname,
+		IF(commission IS NULL,0,commission) AS commission,zonecode,operatorid, partnername,'''' AS walletno
+		FROM(
+SELECT 
+DISTINCT IF(oldkptn IS NULL,p.kptn,oldkptn) AS kptn,
+IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' ,''**'','''') AS flag, 
+                        p.claimeddate AS cancelleddate,
+			reason AS cancelreason,
+			controlno,
+			p.sendername AS sendername,
+			(SELECT so.transdate FROM `kppartnerstransactions`.`corporatesendouts` so WHERE so.kptn=IF(p.oldkptn IS NULL,p.kptn,p.oldkptn) LIMIT 1) AS transdate,
+			(SELECT DATE_FORMAT(so.transdate,''%H:%i:%S'') FROM `kppartnerstransactions`.`corporatesendouts` so WHERE so.kptn=IF(p.oldkptn IS NULL,p.kptn,p.oldkptn) LIMIT 1) AS TIME,
+			(SELECT so.transdate FROM `kppartnerstransactions`.`corporatesendouts` so WHERE so.kptn=IF(p.oldkptn IS NULL,p.kptn,p.oldkptn) LIMIT 1) AS sodate,
+			p.receivername AS receivername,
+			oldkptn,''-'' AS Receiver_Phone,
+			IF(oldkptn IS NULL,p.referenceno,oldkptn) AS referenceno,
+			p.Currency,
+			principal,(servicecharge + CancelledCustCharge + CancelledEmpCharge) AS servicecharge,
+			(SELECT so.chargeamount FROM `kppartnerstransactions`.`corporatesendouts` so WHERE so.kptn=IF(p.oldkptn IS NULL,p.kptn,p.oldkptn) LIMIT 1) AS charge,
+			principal AS socancelprincipal,
+			(SELECT so.chargeamount FROM `kppartnerstransactions`.`corporatesendouts` so WHERE so.kptn=IF(p.oldkptn IS NULL,p.kptn,p.oldkptn) LIMIT 1) AS socancelcharge,
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' AND DATE(p.cancelleddate)=DATE(p.claimeddate),principal * -1,0) AS  adjprincipal,
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' AND DATE(p.cancelleddate)=DATE(p.claimeddate),
+			(SELECT so.chargeamount FROM `kppartnerstransactions`.`corporatesendouts` so WHERE so.kptn=IF(p.oldkptn IS NULL,p.kptn,p.oldkptn) LIMIT 1) * -1,0) AS  adjcharge,
+			p.branchcode,(SELECT b.branchname FROM kpusers.branches b WHERE b.branchcode=p.branchcode AND b.zonecode=IF(p.isremote=1,p.remotezonecode,p.zonecode) LIMIT 1) AS branchname,
+'''' AS Operator,
+IF(pocom.commission IS NULL,0,pocom.commission) AS commission,
+IF(p.isremote,p.remoteoperatorid,p.operatorid) AS operatorid,IF(p.isremote=1,p.remotezonecode,p.zonecode) AS zonecode,ac.accountname AS partnername
+FROM kppartners.payout',_monthdate,'  p
+INNER JOIN kppartners.potxnref sf ON sf.accountcode=p.accountcode AND sf.referenceno=p.referenceno
+INNER JOIN `kpadminpartners`.`accountlist` ac ON ac.accountid = p.accountcode
+LEFT JOIN `kpadminpartners`.`PayoutCommission` pocom ON pocom.accountid=p.accountcode AND pocom.kptn=p.kptn AND pocom.isactive=1
+WHERE    sf.transactiontype IN (''3'') AND YEAR(p.claimeddate)=',_year,'  and p.controlno like ''%mlw%''
+UNION
+(
+SELECT 
+DISTINCT cs.kptn,IF(cs.cancelreason=''RETURN TO SENDER'',''*'','''') AS flag, 
+                        IF(cs.transdate IS NULL OR cs.transdate='''',so.transdate,cs.transdate) AS cancelleddate,
+			IF(cs.cancelreason IS NULL,''newkptnno'',cs.cancelreason) AS cancelreason,
+			cs.controlno,
+			CONCAT(cs.senderlname,'', '',cs.senderfname,'' '',cs.sendermname) AS sendername,
+			so.transdate,DATE_FORMAT(so.transdate,''%H:%i:%S'') AS TIME,
+			CONCAT(',_year,',''-'',SUBSTRING(so.oldkptn,16,2),''-'',SUBSTRING(so.oldkptn,8,2)) AS sodate,
+			CONCAT(cs.receiverlname,'', '',cs.receiverfname,'' '',cs.receivermname) AS receivername,
+			so.oldkptn,''-'' AS Receiver_Phone,IF(cs.referenceno IS NULL OR cs.referenceno='''',cs.kptn,cs.referenceno) AS referenceno,so.Currency,
+			so.principal,0 AS servicecharge,so.chargeamount AS charge,
+			so.principal AS socancelprincipal,
+			so.chargeamount AS socancelcharge,
+			0 AS adjprincipal,
+			0 AS adjcharge,
+			cs.cancbybranchcode AS branchcode,
+			(SELECT b.branchname FROM kpusers.branches b WHERE b.branchcode=so.branchcode AND b.zonecode=IF(cs.isremotecanc=1,cs.cancbyremotezonecode,cs.cancbyzonecode) LIMIT 1) AS branchname,
+'''' AS Operator,IF(pocom.commission IS NULL,0,pocom.commission) AS commission,
+IF(cs.isremotecanc=1,cs.cancbyremoteoperatorid,cs.cancbyoperatorid) AS operatorid,
+IF(cs.isremotecanc=1,cs.cancbyremotezonecode,cs.cancbyzonecode) AS zonecode,ac.accountname AS partnername
+FROM `kppartnerstransactions`.`corporatecancelledSO` cs
+INNER JOIN `kppartnerstransactions`.`corporatesendouts` so ON so.kptn=cs.kptn AND so.accountid=cs.accountid
+INNER JOIN kppartners.sotxnref sf ON sf.accountcode=cs.accountid AND sf.referenceno=IF(cs.referenceno='''',cs.kptn,cs.referenceno)
+INNER JOIN `kpadminpartners`.`accountlist` ac ON ac.accountid = cs.accountid
+LEFT JOIN `kpadminpartners`.`PayoutCommission` pocom ON pocom.accountid=cs.accountid AND pocom.kptn=cs.kptn AND pocom.isactive=1
+WHERE YEAR(cs.transdate)=',_year,'  AND DATE_FORMAT(cs.transdate,''%m%d'')=',_monthdate,' AND cs.cancelreason IN (''RETURN TO SENDER'') 
+  AND  sf.transactiontype IN (''3'') and cs.controlno like ''%mlw%''
+) )X
+');
+SET _datefrom = DATE_ADD(_datefrom, INTERVAL 1 DAY);                
+PREPARE StrSQL FROM @n_query;
+EXECUTE StrSQL;
+END WHILE;
+SET @sql3=CONCAT('select controlno , kptn , referenceno , sendername , receivername , 
+transdate , cancelleddate , TIME , Receiver_Phone , 
+Operator , currency , cancelreason , 
+a.branchcode , principal , charge , adjprincipal , adjCharge , 
+socancelprincipal , socancelcharge , flag , branchname , 
+commission , a.zonecode , operatorid ,  partnername, walletno
+from kppartners.walletpo a
+where if((select userlogin from kpusers.sysuseraccounts where userlogin=operatorid limit 1) is not null,0,1) ');
+PREPARE gtpo3 FROM @sql3;
+EXECUTE gtpo3;
+END$$
+
+DELIMITER ;

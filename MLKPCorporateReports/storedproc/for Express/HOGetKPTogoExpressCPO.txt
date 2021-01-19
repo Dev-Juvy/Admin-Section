@@ -1,0 +1,27 @@
+DELIMITER $$
+
+USE `kptogoadmin`$$
+
+DROP PROCEDURE IF EXISTS `HOGetKPTogoExpressCPO`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOGetKPTogoExpressCPO`(IN potable VARCHAR(4), IN _year VARCHAR(5), IN _username VARCHAR(50))
+BEGIN
+		SET @n_query= CONCAT('
+		SELECT DISTINCT kptn, cancelleddate, transdate, socancelcharge, controlno, principal, charge, referenceno, currency, sendername, 
+		receivername, Operator, cancelreason
+		FROM(
+		SELECT p.kptn,p.cancelleddate,DATE_FORMAT(s.transdate,''%m/%d/%Y'') AS transdate,p.cancelcharge AS socancelcharge,
+		p.controlno,p.denomination AS principal,p.cancelcharge AS charge,p.kptn AS referenceno,p.currency,
+		''KPTOGO'' as sendername,concat(p.recipientfname,'' '',p.recipientmname,'' '',p.recipientlname) as receivername, 
+		p.cancelledbyoperatorid AS Operator, p.cancelreason		
+		FROM `kptogoadmin`.`kptogopayoutcancel` p
+		INNER JOIN `kptogoadmin`.`kptogosendouts` s on s.kptn=p.kptn
+		WHERE  YEAR(cancelleddate)=',_year,' AND p.controlno LIKE ''%op%'' AND p.cancelledbyoperatorid=''',_username,''' 
+		AND p.cancelreason IN(''wrong payout''))X GROUP BY kptn
+');														
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

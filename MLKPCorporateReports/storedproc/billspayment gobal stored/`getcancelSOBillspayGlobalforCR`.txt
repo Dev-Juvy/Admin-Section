@@ -1,0 +1,141 @@
+
+USE `kpbillspayment`;
+
+/* Procedure structure for procedure `getcancelSOBillspayGlobalforCR` */
+
+DROP PROCEDURE IF EXISTS  `getcancelSOBillspayGlobalforCR` ;
+
+DELIMITER $$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `getcancelSOBillspayGlobalforCR`(IN sotable VARCHAR(4), IN accountCode VARCHAR(30),IN zcode VARCHAR(5),IN rcode VARCHAR(5),IN acode VARCHAR(5),IN bcode VARCHAR(5),IN _year VARCHAR(5),IN _globe VARCHAR(50),IN _usertype VARCHAR(10),IN oldzcode VARCHAR(5))
+BEGIN
+DECLARE globe VARCHAR(100);
+IF _globe = 'INNOVE' THEN
+	SET globe = 'CHAR_LENGTH(AccountNo) = 9';
+ELSEIF _globe = 'GLOBE' THEN
+	SET globe = 'CHAR_LENGTH(AccountNo) <> 9';
+ELSE
+	SET globe = '1';
+END IF;
+IF _usertype = "NOTIAD" THEN #NOT IAD USER
+		SET @n_query= CONCAT('
+		SELECT cancelreason,DATE_FORMAT(TransDate,''%Y-%m-%d %r'') AS SO_Date,ControlNo AS Control_No,kptnNo AS NEW_KPTN, AccountNo AS Account_No,
+(CONCAT(AccountFName, '' '', AccountMName, '' '',AccountLName)) AS Account_Name,Currency,AmountPaid AS Amount_Paid,CustomerCharge AS CCharge,
+PartnerCharge AS PCharge,
+(select b.branchname from kpusersglobal.branches b where b.branchcode=CancelledByBranchCode AND (b.zonecode=CancelledByZoneCode or b.oldzonecode=CancelledByZoneCode) limit 1) AS Branch_Code,
+zonecode AS Zone_Code,
+if( (SELECT bu.fullname FROM kpusersglobal.sysuseraccounts ss LEFT JOIN  kpusersglobal.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1) is null,
+    (SELECT bu.fullname FROM kpusersglobal.sysuseraccounts ss LEFT JOIN  kpusersglobal.adminusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1),
+    (SELECT bu.fullname FROM kpusersglobal.sysuseraccounts ss LEFT JOIN  kpusersglobal.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1)
+) AS Operator_ID, 
+(CONCAT(PayorFName, '' '' ,PayorMName, '' '',PayorLName)) AS Payor_Name,PayorAddress AS  Payor_Address, PayorContactNo AS  Payor_ContactNo, 
+OtherDetails AS Other_Details, oldkptnno AS OLD_KPTN,RemoteBranchCode,RemoteZoneCode,if(RemoteOperatorID is null,operatorid,RemoteOperatorID) as remoteoperatorid,NULL AS TYPE,PeriodFrom,
+PeriodTo,IRNo AS IR_No,DATE_FORMAT(CancelledDate , ''%Y-%m-%d %r'') AS Transaction_Time,CancelCharge AS Cancellation_Charge,
+if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) as CancelledByOperatorID,CancelledByBranchCode,CancelledByZoneCode, ''C'' AS CDType 
+FROM `KPBillspaymentTransaction`.`CancellationsBillsypayment`  
+WHERE (cancelreason=''Cancel Sendout'' 
+OR cancelreason=''Return to Sender'' 
+OR cancelreason=''Double Sendout'')
+AND CompanyID=''',accountCode,''' and ',globe,' and year(cancelleddate)=',_year,' 
+and DATE_FORMAT(cancelleddate, ''%m%d'')=',sotable,' ORDER BY DATE_FORMAT(cancelleddate, ''%k%i%s'') ASC
+');
+ELSEIF _usertype = "IAD" THEN #IAD USER
+	IF accountCode = "" THEN #NO SPECIFIC PARTNER - FOR SUMMARY REPORT
+		IF bcode<>"" AND acode<>"" AND rcode<>"" THEN # BY BRANCH
+			SET @n_query= CONCAT('
+				SELECT cancelreason,DATE_FORMAT(TransDate,''%Y-%m-%d %r'') AS SO_Date,ControlNo AS Control_No,kptnNo AS NEW_KPTN, AccountNo AS Account_No,
+(CONCAT(AccountFName, '' '', AccountMName, '' '',AccountLName)) AS Account_Name,Currency,AmountPaid AS Amount_Paid,CustomerCharge AS CCharge,
+PartnerCharge AS PCharge,b.branchname AS Branch_Code,s.zonecode AS Zone_Code, 
+if( (SELECT bu.fullname FROM kpusersglobal.sysuseraccounts ss LEFT JOIN  kpusersglobal.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1) is null,
+    (SELECT bu.fullname FROM kpusersglobal.sysuseraccounts ss LEFT JOIN  kpusersglobal.adminusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1),
+    (SELECT bu.fullname FROM kpusersglobal.sysuseraccounts ss LEFT JOIN  kpusersglobal.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1)
+) AS Operator_ID, 
+(CONCAT(PayorFName, '' '' ,PayorMName, '' '',PayorLName)) AS Payor_Name,PayorAddress AS  Payor_Address, PayorContactNo AS  Payor_ContactNo, 
+OtherDetails AS Other_Details, oldkptnno AS OLD_KPTN,RemoteBranchCode,RemoteZoneCode,if(RemoteOperatorID is null,operatorid,RemoteOperatorID) as remoteoperatorid,NULL AS TYPE,PeriodFrom,
+PeriodTo,IRNo AS IR_No,DATE_FORMAT(CancelledDate , ''%Y-%m-%d %r'') AS Transaction_Time,CancelCharge AS Cancellation_Charge,
+if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) as CancelledByOperatorID,CancelledByBranchCode,CancelledByZoneCode, ''C'' AS CDType 
+FROM `KPBillspaymentTransaction`.`CancellationsBillsypayment`  s
+INNER JOIN kpusersglobal.branches b ON b.branchcode=',bcode,' AND b.zonecode=',zcode,' AND b.oldzonecode=',oldzcode,'
+WHERE (cancelreason=''Cancel Sendout'' 
+OR cancelreason=''Return to Sender'' 
+OR cancelreason=''Double Sendout'')
+AND s.cancelledbybranchcode=',bcode,' AND (CancelledByZoneCode=',zcode,' or CancelledByZoneCode=',oldzcode,') and year(cancelleddate)=',_year,'
+and DATE_FORMAT(cancelleddate, ''%m%d'')=',sotable,' ORDER BY DATE_FORMAT(cancelleddate, ''%k%i%s'') ASC
+			');
+		END IF;
+	ELSEIF accountCode <> "" THEN #WITH SPECIFIC PARTNER 
+		IF bcode<>"" AND acode<>"" AND rcode<>"" THEN #BY BRANCH
+			SET @n_query= CONCAT('
+				SELECT cancelreason,DATE_FORMAT(TransDate,''%Y-%m-%d %r'') AS SO_Date,ControlNo AS Control_No,kptnNo AS NEW_KPTN, AccountNo AS Account_No,
+(CONCAT(AccountFName, '' '', AccountMName, '' '',AccountLName)) AS Account_Name,Currency,AmountPaid AS Amount_Paid,CustomerCharge AS CCharge,
+PartnerCharge AS PCharge,b.branchname AS Branch_Code,s.zonecode AS Zone_Code, 
+if( (SELECT bu.fullname FROM kpusersglobal.sysuseraccounts ss LEFT JOIN  kpusersglobal.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1) is null,
+    (SELECT bu.fullname FROM kpusersglobal.sysuseraccounts ss LEFT JOIN  kpusersglobal.adminusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1),
+    (SELECT bu.fullname FROM kpusersglobal.sysuseraccounts ss LEFT JOIN  kpusersglobal.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1)
+) AS Operator_ID, 
+(CONCAT(PayorFName, '' '' ,PayorMName, '' '',PayorLName)) AS Payor_Name,PayorAddress AS  Payor_Address, PayorContactNo AS  Payor_ContactNo, 
+OtherDetails AS Other_Details, oldkptnno AS OLD_KPTN,RemoteBranchCode,RemoteZoneCode,if(RemoteOperatorID is null,operatorid,RemoteOperatorID) as remoteoperatorid,NULL AS TYPE,PeriodFrom,
+PeriodTo,IRNo AS IR_No,DATE_FORMAT(CancelledDate , ''%Y-%m-%d %r'') AS Transaction_Time,CancelCharge AS Cancellation_Charge,
+if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) as CancelledByOperatorID,CancelledByBranchCode,CancelledByZoneCode, ''C'' AS CDType 
+FROM `KPBillspaymentTransaction`.`CancellationsBillsypayment`  s
+INNER JOIN kpusersglobal.branches b ON b.branchcode=',bcode,' AND b.zonecode=',zcode,' AND b.oldzonecode=',oldzcode,'
+WHERE(cancelreason=''Cancel Sendout'' 
+OR cancelreason=''Return to Sender'' 
+OR cancelreason=''Double Sendout'')
+AND s.CompanyID=''',accountCode,''' and ',globe,'  
+AND s.cancelledbybranchcode=',bcode,' AND (CancelledByZoneCode=',zcode,' or CancelledByZoneCode=',oldzcode,') and year(cancelleddate)=',_year,'
+and DATE_FORMAT(cancelleddate, ''%m%d'')=',sotable,' ORDER BY DATE_FORMAT(cancelleddate, ''%k%i%s'') ASC
+			');
+		ELSEIF bcode="" AND acode<>"" AND rcode<>"" THEN #BY AREA
+			SET @n_query= CONCAT('
+				SELECT cancelreason,DATE_FORMAT(TransDate,''%Y-%m-%d %r'') AS SO_Date,ControlNo AS Control_No,kptnNo AS NEW_KPTN, AccountNo AS Account_No,
+(CONCAT(AccountFName, '' '', AccountMName, '' '',AccountLName)) AS Account_Name,Currency,AmountPaid AS Amount_Paid,CustomerCharge AS CCharge,
+PartnerCharge AS PCharge,b.branchname AS Branch_Code,s.zonecode AS Zone_Code, 
+if( (SELECT bu.fullname FROM kpusersglobal.sysuseraccounts ss LEFT JOIN  kpusersglobal.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1) is null,
+    (SELECT bu.fullname FROM kpusersglobal.sysuseraccounts ss LEFT JOIN  kpusersglobal.adminusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1),
+    (SELECT bu.fullname FROM kpusersglobal.sysuseraccounts ss LEFT JOIN  kpusersglobal.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1)
+) AS Operator_ID, 
+(CONCAT(PayorFName, '' '' ,PayorMName, '' '',PayorLName)) AS Payor_Name,PayorAddress AS  Payor_Address, PayorContactNo AS  Payor_ContactNo, 
+OtherDetails AS Other_Details, oldkptnno AS OLD_KPTN,RemoteBranchCode,RemoteZoneCode,if(RemoteOperatorID is null,operatorid,RemoteOperatorID) as remoteoperatorid,NULL AS TYPE,PeriodFrom,
+PeriodTo,IRNo AS IR_No,DATE_FORMAT(CancelledDate , ''%Y-%m-%d %r'') AS Transaction_Time,CancelCharge AS Cancellation_Charge,
+if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) as CancelledByOperatorID,CancelledByBranchCode,CancelledByZoneCode, ''C'' AS CDType 
+FROM `KPBillspaymentTransaction`.`CancellationsBillsypayment`  s
+INNER JOIN kpusersglobal.branches b ON b.branchcode=s.cancelledbybranchcode AND b.zonecode=',zcode,' AND b.oldzonecode=',oldzcode,' and b.areacode=''',acode,''' and b.regioncode=',rcode,'
+WHERE (cancelreason=''Cancel Sendout'' 
+OR cancelreason=''Return to Sender'' 
+OR cancelreason=''Double Sendout'')
+AND s.CompanyID=''',accountCode,''' and ',globe,'  
+AND  (CancelledByZoneCode=',zcode,' or CancelledByZoneCode=',oldzcode,') and year(cancelleddate)=',_year,'
+and DATE_FORMAT(cancelleddate, ''%m%d'')=',sotable,' ORDER BY DATE_FORMAT(cancelleddate, ''%k%i%s'') ASC
+			');
+		ELSEIF bcode="" AND acode="" AND rcode<>"" THEN #BY REGION
+			SET @n_query= CONCAT('
+				SELECT cancelreason,DATE_FORMAT(TransDate,''%Y-%m-%d %r'') AS SO_Date,ControlNo AS Control_No,kptnNo AS NEW_KPTN, AccountNo AS Account_No,
+(CONCAT(AccountFName, '' '', AccountMName, '' '',AccountLName)) AS Account_Name,Currency,AmountPaid AS Amount_Paid,CustomerCharge AS CCharge,
+PartnerCharge AS PCharge,b.branchname AS Branch_Code,s.zonecode AS Zone_Code, 
+if( (SELECT bu.fullname FROM kpusersglobal.sysuseraccounts ss LEFT JOIN  kpusersglobal.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1) is null,
+    (SELECT bu.fullname FROM kpusersglobal.sysuseraccounts ss LEFT JOIN  kpusersglobal.adminusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1),
+    (SELECT bu.fullname FROM kpusersglobal.sysuseraccounts ss LEFT JOIN  kpusersglobal.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1)
+) AS Operator_ID, 
+(CONCAT(PayorFName, '' '' ,PayorMName, '' '',PayorLName)) AS Payor_Name,PayorAddress AS  Payor_Address, PayorContactNo AS  Payor_ContactNo, 
+OtherDetails AS Other_Details, oldkptnno AS OLD_KPTN,RemoteBranchCode,RemoteZoneCode,if(RemoteOperatorID is null,operatorid,RemoteOperatorID) as remoteoperatorid,NULL AS TYPE,PeriodFrom,
+PeriodTo,IRNo AS IR_No,DATE_FORMAT(CancelledDate , ''%Y-%m-%d %r'') AS Transaction_Time,CancelCharge AS Cancellation_Charge,
+if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) as CancelledByOperatorID,CancelledByBranchCode,CancelledByZoneCode, ''C'' AS CDType 
+FROM `KPBillspaymentTransaction`.`CancellationsBillsypayment`  s
+INNER JOIN kpusersglobal.branches b ON b.branchcode=s.cancelledbybranchcode AND b.zonecode=',zcode,' AND b.oldzonecode=',oldzcode,'  and b.regioncode=',rcode,'
+WHERE cancelreason=''Cancel Sendout'' 
+AND (cancelreason=''Cancel Sendout'' 
+OR cancelreason=''Return to Sender'' 
+OR cancelreason=''Double Sendout'')
+AND s.CompanyID=''',accountCode,''' and ',globe,'  
+AND  (CancelledByZoneCode=',zcode,' or CancelledByZoneCode=',oldzcode,') and year(cancelleddate)=',_year,'
+and DATE_FORMAT(cancelleddate, ''%m%d'')=',sotable,' ORDER BY DATE_FORMAT(cancelleddate, ''%k%i%s'') ASC
+			');
+		END IF;
+	END IF;
+END IF;															
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END $$
+DELIMITER ;

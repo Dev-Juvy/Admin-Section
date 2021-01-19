@@ -1,0 +1,531 @@
+
+
+USE `kpbillspayment`;
+
+
+
+/* Procedure structure for procedure `getcancelSOBillspay` */
+
+DROP PROCEDURE IF EXISTS  `getcancelSOBillspay` ;
+
+DELIMITER $$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `getcancelSOBillspay`(IN sotable VARCHAR(4), IN accountCode VARCHAR(30),IN zcode VARCHAR(5),IN rcode VARCHAR(5),IN acode VARCHAR(5),IN bcode VARCHAR(5),IN _year VARCHAR(5),IN _globe VARCHAR(50),IN _usertype VARCHAR(10),IN oldzcode VARCHAR(5))
+BEGIN
+DECLARE globe VARCHAR(100);
+IF _globe = 'INNOVE' THEN
+	SET globe = 'CHAR_LENGTH(AccountNo) = 9';
+ELSEIF _globe = 'GLOBE' THEN
+	SET globe = 'CHAR_LENGTH(AccountNo) <> 9';
+ELSE
+	SET globe = '1';
+END IF;
+IF _usertype = "NOTIAD" THEN #NOT IAD USER
+		SET @n_query= CONCAT('
+		SELECT cancelreason,DATE_FORMAT(TransDate,''%Y-%m-%d %r'') AS SO_Date,ControlNo AS Control_No,kptnNo AS NEW_KPTN, AccountNo AS Account_No,
+(CONCAT(AccountFName, '' '', AccountMName, '' '',AccountLName)) AS Account_Name,Currency,AmountPaid AS Amount_Paid,CustomerCharge AS CCharge,
+PartnerCharge AS PCharge,
+(select b.branchname from kpusers.branches b where b.branchcode=CancelledByBranchCode AND (b.zonecode=CancelledByZoneCode or b.oldzonecode=CancelledByZoneCode) limit 1) AS Branch_Code,
+zonecode AS Zone_Code,
+if( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1) is null,
+    (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1),
+    (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1)
+) AS Operator_ID, 
+(CONCAT(PayorFName, '' '' ,PayorMName, '' '',PayorLName)) AS Payor_Name,PayorAddress AS  Payor_Address, PayorContactNo AS  Payor_ContactNo, 
+OtherDetails AS Other_Details, oldkptnno AS OLD_KPTN,RemoteBranchCode,RemoteZoneCode,if(RemoteOperatorID is null,operatorid,RemoteOperatorID) as remoteoperatorid,NULL AS TYPE,PeriodFrom,
+PeriodTo,IRNo AS IR_No,DATE_FORMAT(CancelledDate , ''%Y-%m-%d %r'') AS Transaction_Time,CancelCharge AS Cancellation_Charge,
+if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) as CancelledByOperatorID,CancelledByBranchCode,CancelledByZoneCode, ''C'' AS CDType 
+FROM `KPBillspaymentTransaction`.`CancellationsBillsypayment`  
+WHERE cancelreason=''Cancel'' AND CompanyID=''',accountCode,''' and ',globe,' and year(cancelleddate)=',_year,' 
+and DATE_FORMAT(cancelleddate, ''%m%d'')=',sotable,' ORDER BY DATE_FORMAT(cancelleddate, ''%k%i%s'') ASC
+');
+ELSEIF _usertype = "IAD" THEN #IAD USER
+	IF accountCode = "" THEN #NO SPECIFIC PARTNER - FOR SUMMARY REPORT
+		IF bcode<>"" AND acode<>"" AND rcode<>"" THEN # BY BRANCH
+			SET @n_query= CONCAT('
+				SELECT cancelreason,DATE_FORMAT(TransDate,''%Y-%m-%d %r'') AS SO_Date,ControlNo AS Control_No,kptnNo AS NEW_KPTN, AccountNo AS Account_No,
+(CONCAT(AccountFName, '' '', AccountMName, '' '',AccountLName)) AS Account_Name,Currency,AmountPaid AS Amount_Paid,CustomerCharge AS CCharge,
+PartnerCharge AS PCharge,b.branchname AS Branch_Code,s.zonecode AS Zone_Code, 
+if( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1) is null,
+    (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1),
+    (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1)
+) AS Operator_ID, 
+(CONCAT(PayorFName, '' '' ,PayorMName, '' '',PayorLName)) AS Payor_Name,PayorAddress AS  Payor_Address, PayorContactNo AS  Payor_ContactNo, 
+OtherDetails AS Other_Details, oldkptnno AS OLD_KPTN,RemoteBranchCode,RemoteZoneCode,if(RemoteOperatorID is null,operatorid,RemoteOperatorID) as remoteoperatorid,NULL AS TYPE,PeriodFrom,
+PeriodTo,IRNo AS IR_No,DATE_FORMAT(CancelledDate , ''%Y-%m-%d %r'') AS Transaction_Time,CancelCharge AS Cancellation_Charge,
+if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) as CancelledByOperatorID,CancelledByBranchCode,CancelledByZoneCode, ''C'' AS CDType 
+FROM `KPBillspaymentTransaction`.`CancellationsBillsypayment`  s
+INNER JOIN kpusers.branches b ON b.branchcode=',bcode,' AND (b.zonecode=',zcode,' and b.oldzonecode=',oldzcode,')
+WHERE cancelreason=''Cancel''  AND s.cancelledbybranchcode=',bcode,' AND (CancelledByZoneCode=',zcode,' or CancelledByZoneCode=',oldzcode,') and year(cancelleddate)=',_year,'
+and DATE_FORMAT(cancelleddate, ''%m%d'')=',sotable,' ORDER BY DATE_FORMAT(cancelleddate, ''%k%i%s'') ASC
+			');
+		END IF;
+	ELSEIF accountCode <> "" THEN #WITH SPECIFIC PARTNER 
+		IF bcode<>"" AND acode<>"" AND rcode<>"" THEN #BY BRANCH
+			SET @n_query= CONCAT('
+				SELECT cancelreason,DATE_FORMAT(TransDate,''%Y-%m-%d %r'') AS SO_Date,ControlNo AS Control_No,kptnNo AS NEW_KPTN, AccountNo AS Account_No,
+(CONCAT(AccountFName, '' '', AccountMName, '' '',AccountLName)) AS Account_Name,Currency,AmountPaid AS Amount_Paid,CustomerCharge AS CCharge,
+PartnerCharge AS PCharge,b.branchname AS Branch_Code,s.zonecode AS Zone_Code, 
+if( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1) is null,
+    (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1),
+    (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1)
+) AS Operator_ID, 
+(CONCAT(PayorFName, '' '' ,PayorMName, '' '',PayorLName)) AS Payor_Name,PayorAddress AS  Payor_Address, PayorContactNo AS  Payor_ContactNo, 
+OtherDetails AS Other_Details, oldkptnno AS OLD_KPTN,RemoteBranchCode,RemoteZoneCode,if(RemoteOperatorID is null,operatorid,RemoteOperatorID) as remoteoperatorid,NULL AS TYPE,PeriodFrom,
+PeriodTo,IRNo AS IR_No,DATE_FORMAT(CancelledDate , ''%Y-%m-%d %r'') AS Transaction_Time,CancelCharge AS Cancellation_Charge,
+if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) as CancelledByOperatorID,CancelledByBranchCode,CancelledByZoneCode, ''C'' AS CDType 
+FROM `KPBillspaymentTransaction`.`CancellationsBillsypayment`  s
+INNER JOIN kpusers.branches b ON b.branchcode=',bcode,' AND (b.zonecode=',zcode,' and b.oldzonecode=',oldzcode,')
+WHERE cancelreason=''Cancel'' AND s.CompanyID=''',accountCode,''' and ',globe,'  
+AND s.cancelledbybranchcode=',bcode,' AND (CancelledByZoneCode=',zcode,' or CancelledByZoneCode=',oldzcode,')  and year(cancelleddate)=',_year,'
+and DATE_FORMAT(cancelleddate, ''%m%d'')=',sotable,' ORDER BY DATE_FORMAT(cancelleddate, ''%k%i%s'') ASC
+			');
+		ELSEIF bcode="" AND acode<>"" AND rcode<>"" THEN #BY AREA
+			SET @n_query= CONCAT('
+				SELECT cancelreason,DATE_FORMAT(TransDate,''%Y-%m-%d %r'') AS SO_Date,ControlNo AS Control_No,kptnNo AS NEW_KPTN, AccountNo AS Account_No,
+(CONCAT(AccountFName, '' '', AccountMName, '' '',AccountLName)) AS Account_Name,Currency,AmountPaid AS Amount_Paid,CustomerCharge AS CCharge,
+PartnerCharge AS PCharge,b.branchname AS Branch_Code,s.zonecode AS Zone_Code, 
+if( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1) is null,
+    (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1),
+    (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1)
+) AS Operator_ID, 
+(CONCAT(PayorFName, '' '' ,PayorMName, '' '',PayorLName)) AS Payor_Name,PayorAddress AS  Payor_Address, PayorContactNo AS  Payor_ContactNo, 
+OtherDetails AS Other_Details, oldkptnno AS OLD_KPTN,RemoteBranchCode,RemoteZoneCode,if(RemoteOperatorID is null,operatorid,RemoteOperatorID) as remoteoperatorid,NULL AS TYPE,PeriodFrom,
+PeriodTo,IRNo AS IR_No,DATE_FORMAT(CancelledDate , ''%Y-%m-%d %r'') AS Transaction_Time,CancelCharge AS Cancellation_Charge,
+if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) as CancelledByOperatorID,CancelledByBranchCode,CancelledByZoneCode, ''C'' AS CDType 
+FROM `KPBillspaymentTransaction`.`CancellationsBillsypayment`  s
+INNER JOIN kpusers.branches b ON b.branchcode=s.cancelledbybranchcode AND (b.zonecode=',zcode,' and b.oldzonecode=',oldzcode,') and b.areacode=''',acode,''' and b.regioncode=',rcode,'
+WHERE cancelreason=''Cancel'' AND s.CompanyID=''',accountCode,''' and ',globe,'  
+AND  (CancelledByZoneCode=',zcode,' or CancelledByZoneCode=',oldzcode,')  and year(cancelleddate)=',_year,'
+and DATE_FORMAT(cancelleddate, ''%m%d'')=',sotable,' ORDER BY DATE_FORMAT(cancelleddate, ''%k%i%s'') ASC
+			');
+		ELSEIF bcode="" AND acode="" AND rcode<>"" THEN #BY REGION
+			SET @n_query= CONCAT('
+				SELECT cancelreason,DATE_FORMAT(TransDate,''%Y-%m-%d %r'') AS SO_Date,ControlNo AS Control_No,kptnNo AS NEW_KPTN, AccountNo AS Account_No,
+(CONCAT(AccountFName, '' '', AccountMName, '' '',AccountLName)) AS Account_Name,Currency,AmountPaid AS Amount_Paid,CustomerCharge AS CCharge,
+PartnerCharge AS PCharge,b.branchname AS Branch_Code,s.zonecode AS Zone_Code, 
+if( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1) is null,
+    (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1),
+    (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) LIMIT 1)
+) AS Operator_ID, 
+(CONCAT(PayorFName, '' '' ,PayorMName, '' '',PayorLName)) AS Payor_Name,PayorAddress AS  Payor_Address, PayorContactNo AS  Payor_ContactNo, 
+OtherDetails AS Other_Details, oldkptnno AS OLD_KPTN,RemoteBranchCode,RemoteZoneCode,if(RemoteOperatorID is null,operatorid,RemoteOperatorID) as remoteoperatorid,NULL AS TYPE,PeriodFrom,
+PeriodTo,IRNo AS IR_No,DATE_FORMAT(CancelledDate , ''%Y-%m-%d %r'') AS Transaction_Time,CancelCharge AS Cancellation_Charge,
+if(CancelledByOperatorID is null,operatorid,CancelledByOperatorID) as CancelledByOperatorID,CancelledByBranchCode,CancelledByZoneCode, ''C'' AS CDType 
+FROM `KPBillspaymentTransaction`.`CancellationsBillsypayment`  s
+INNER JOIN kpusers.branches b ON b.branchcode=s.cancelledbybranchcode AND (b.zonecode=',zcode,' and b.oldzonecode=',oldzcode,')  and b.regioncode=',rcode,'
+WHERE cancelreason=''Cancel'' AND s.CompanyID=''',accountCode,''' and ',globe,'  
+AND  (CancelledByZoneCode=',zcode,' or CancelledByZoneCode=',oldzcode,')  and year(cancelleddate)=',_year,'
+and DATE_FORMAT(cancelleddate, ''%m%d'')=',sotable,' ORDER BY DATE_FORMAT(cancelleddate, ''%k%i%s'') ASC
+			');
+		END IF;
+	END IF;
+END IF;															
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;
+
+
+/* Procedure structure for procedure `getsendoutBillspayment` */
+
+DROP PROCEDURE IF EXISTS  `getsendoutBillspayment` ;
+
+DELIMITER $$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `getsendoutBillspayment`(IN _tblname VARCHAR(4),IN _accountid VARCHAR(15),IN _datefrom VARCHAR(15),IN _dateto VARCHAR(15),IN _year VARCHAR(5),IN _flag VARCHAR(5),IN _rcode VARCHAR(5),IN _acode VARCHAR(5),IN _bcode VARCHAR(5),IN _zcode VARCHAR(5),IN _oldzcode VARCHAR(5))
+BEGIN
+DECLARE _type VARCHAR(50);
+DECLARE _code VARCHAR(50);
+IF _flag = 'G' THEN
+	SET _type = 'CHAR_LENGTH(AccountNo) <> 9';
+ELSEIF _flag = 'I' THEN
+	SET _type = 'CHAR_LENGTH(s.AccountNo) = 9';
+ELSE
+	SET _type = '1';
+END IF;
+IF _rcode <> '' AND _acode <> '' AND _bcode <> '' THEN -- BY BRANCH
+SET @SQLStmt = CONCAT('select 
+if(ReferenceNo is null,''-'',ReferenceNo) as ReferenceNo,if(Controlno is null,''-'',Controlno) as Controlno,
+if(AccountNo is null,''-'',AccountNo) as AccountNo,if(AccountName is null,''-'',AccountName) as AccountName,
+if(AmountPaid is null,0,AmountPaid) as  AmountPaid,if(if(CCharge is null,0,CCharge)=0,if(PCharge is null,0,PCharge),if(CCharge is null,0,CCharge)) as charge,
+trim(if(MLOutlet is null,''-'',MLOutlet)) as MLOutlet,if(MLZoneCode is null,''-'',MLZoneCode) as MLZoneCode,if(Operator is null,if(operatorid is null,0,operatorid),Operator) as Operator,
+if(Payer is null,''-'',Payer) as Payer,if(Address is null,''-'',Address) as Address,if(ContactNo is null,''-'',ContactNo) as ContactNo,  
+if(OtherDetails is null,''-'',OtherDetails) as  OtherDetails,if(DATETIME is null,''0000-00-00 00:00:00'',DATETIME) as DATETIME,
+if(RemoteOperator is null,''-'',RemoteOperator) as RemoteOperator,if(RemoteId is null,''-'',RemoteId) as RemoteOperatorId, 
+if(RemoteZoneCode is null,''-'',RemoteZoneCode) as RemoteZoneCode,if(CancelReason is null,''-'',CancelReason) as CancelReason,
+if(partnername is null,''-'',partnername) as partnername,if(assbranch is null,0,assbranch) as  assbranch,
+if(assoperator is null,0,assoperator) as  assoperator,if(Assbranchname is null,0,Assbranchname) as  Assbranchname,
+if(assFullName is null,0,assFullName) as  assFullName,if(currency is null,''-'',currency) as currency,if(Cancelleddate is null,''0000-00-00 00:00:00'',Cancelleddate) as Cancelleddate,
+if(CDType is null,''-'',CDType) as CDType,
+if(adjPHPCount is null,0,adjPHPCount) as  adjPHPCount,if(adjPHPprincipal is null,0,adjPHPprincipal) as  adjPHPprincipal,
+if(adjUSDCount is null,0,adjUSDCount) as  adjUSDCount,if(adjUSDprincipal is null,0,adjUSDprincipal) as  adjUSDprincipal,
+if(assZoneCode is null,0,assZoneCode) as  assZoneCode,if(operatorid is null,0,operatorid) as  operatorid
+from(
+SELECT 
+DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS DATETIME,Controlno, kptnno AS ReferenceNo,AccountNo,
+(CONCAT(AccountFName, '' '',AccountMName, '' '',AccountLName)) AS AccountName, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),(-1*AmountPaid),AmountPaid) AS AmountPaid, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),(-1*CustomerCharge),CustomerCharge) AS CCharge, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),(-1*PartnerCharge),PartnerCharge) AS PCharge, 
+b.branchname AS MLOutlet, IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) AS MLZoneCode, 
+ IF( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1) IS NULL,
+     (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1),
+     (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1)
+ ) AS Operator,
+(CONCAT(PayorFName,  '' '',PayorMName, '' '',PayorLName)) AS Payer, 
+PayorAddress AS Address, PayorContactNo AS ContactNo, OtherDetails, RemoteBranchCode AS RemoteId,
+RemoteZoneCode , RemoteOperatorID AS RemoteOperator, CancelReason, ''S'' AS CDType,
+DATE_FORMAT(Cancelleddate,''%m/%d/%Y'') AS Cancelleddate,
+accountlist.accountname AS partnername,s.currency,
+IF(RemoteBranchCode!='''',s.BranchCode,'''') AS assbranch, 
+		IF(RemoteBranchCode!='''',s.ZoneCode,'''') AS assZoneCode, 
+		IF(remoteoperatorid IS NOT NULL,operatorid,'''') AS assoperator, 
+		(SELECT branchName FROM kpusers.branches b1 WHERE b1.branchcode = assbranch AND (b1.zonecode= assZoneCode or b1.oldzonecode= assZoneCode)LIMIT 1 ) AS Assbranchname,
+		(SELECT bu.fullname FROM kpusers.sysuseraccounts sy  INNER JOIN kpusers.branchusers bu ON bu.resourceid=sy.resourceid  WHERE sy.userlogin=assoperator LIMIT 1) AS assFullName,
+		IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjPHPCount,
+IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjPHPprincipal,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjUSDCount,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjUSDprincipal,operatorid
+FROM kpbillspayment.sendout',_tblname,' s
+INNER JOIN kpusers.branches b ON 
+b.branchcode=IF(s.remotebranchcode='''',s.branchcode,s.remotebranchcode) AND 
+(b.zonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) or b.oldzonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) )
+INNER JOIN kpadminpartners.accountlist  ON accountlist.accountid = companyid 
+WHERE if(''',_accountid,'''<>'''',companyid=''',_accountid,''',1)  AND YEAR(transdate)=''',_year,''' and ',_type,'
+and (IF(s.remotezonecode='''',s.zonecode,s.remotezonecode)= ',_zcode,' or IF(s.remotezonecode='''',s.zonecode,s.remotezonecode)= ',_oldzcode,') AND b.regioncode= ',_rcode,'  AND b.areacode= ''',_acode,'''  AND IF(s.RemoteBranchCode = '''',s.branchcode,s.remotebranchcode)= ',_bcode,' 
+AND DATE(transdate) BETWEEN ''',_datefrom,''' AND ''',_dateto,'''
+AND IF(cancelreason IN (''Cancel''),DATE(transdate)<>DATE(cancelleddate) AND DATE(cancelleddate) NOT BETWEEN ''',_datefrom,''' AND ''',_dateto,''',1)
+AND IF(cancelreason IN (''CHANGE Details''),
+IF(DATE(transdate)=DATE(cancelleddate),0,IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',0,1))
+,IF(DATE(transdate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND oldkptn IS NOT NULL AND CONCAT(SUBSTRING(kptnno,16,2),'''',SUBSTRING(kptnno,8,2))<>CONCAT(SUBSTRING(oldkptn,16,2),'''',SUBSTRING(oldkptn,8,2)),0,1))
+UNION ALL
+SELECT 
+DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS DATETIME,
+Controlno, 
+kptnno AS ReferenceNo, 
+AccountNo,
+(CONCAT(AccountFName, '' '',AccountMName, '' '',AccountLName)) AS AccountName, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',(-1*AmountPaid),AmountPaid) AS AmountPaid, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',(-1*CustomerCharge),CustomerCharge) AS CCharge, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',(-1*PartnerCharge),PartnerCharge) AS PCharge, 
+b.branchname AS MLOutlet, IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) AS MLZoneCode, 
+ IF( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1) IS NULL,
+     (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1),
+     (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1)
+ ) AS Operator,
+(CONCAT(PayorFName,  '' '',PayorMName, '' '',PayorLName)) AS Payer, 
+PayorAddress AS Address, PayorContactNo AS ContactNo, OtherDetails, RemoteBranchCode AS RemoteId,
+RemoteZoneCode , RemoteOperatorID AS RemoteOperator, CancelReason, ''S'' AS CDType,
+DATE_FORMAT(Cancelleddate,''%m/%d/%Y'') AS Cancelleddate,
+accountlist.accountname AS partnername,s.currency,
+IF(RemoteBranchCode!='''',s.BranchCode,'''') AS assbranch, 
+		IF(RemoteBranchCode!='''',s.ZoneCode,'''') AS assZoneCode, 
+		IF(remoteoperatorid IS NOT NULL,operatorid,'''') AS assoperator, 
+		(SELECT branchName FROM kpusers.branches b1 WHERE b1.branchcode = assbranch AND (b1.zonecode= assZoneCode or b1.oldzonecode= assZoneCode)LIMIT 1 ) AS Assbranchname,
+		(SELECT bu.fullname FROM kpusers.sysuseraccounts sy  INNER JOIN kpusers.branchusers bu ON bu.resourceid=sy.resourceid  WHERE sy.userlogin=assoperator LIMIT 1) AS assFullName,
+		IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjPHPCount,
+IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjPHPprincipal,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjUSDCount,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjUSDprincipal,operatorid
+FROM `KPBillspaymentTransaction`.`CancellationsBillsypayment`  s
+INNER JOIN kpusers.branches b ON 
+b.branchcode=IF(s.remotebranchcode='''',s.branchcode,s.remotebranchcode) AND 
+(b.zonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) or b.oldzonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) )
+INNER JOIN kpadminpartners.accountlist  ON accountlist.accountid = companyid 
+WHERE if(''',_accountid,'''<>'''',companyid=''',_accountid,''',1)  AND YEAR(cancelleddate)=''',_year,''' AND DATE_FORMAT(Cancelleddate,''%m%d'')=',_tblname,'
+and (IF(s.remotezonecode='''',s.zonecode,s.remotezonecode)= ',_zcode,' or IF(s.remotezonecode='''',s.zonecode,s.remotezonecode)= ',_oldzcode,') AND b.regioncode= ',_rcode,'  AND b.areacode= ''',_acode,'''  AND IF(s.RemoteBranchCode = '''',s.branchcode,s.remotebranchcode)= ',_bcode,' 
+AND DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' and  ',_type,'
+AND IF(cancelreason IN (''Cancel''),DATE(transdate)<>DATE(cancelleddate) AND DATE(transdate) NOT BETWEEN ''',_datefrom,''' AND ''',_dateto,''',0)
+)x WHERE  referenceno  IS NOT NULL  GROUP BY Controlno ORDER BY DATETIME; 
+');
+ELSEIF _rcode<>'' AND _acode='' AND _bcode='' THEN -- BY REGION
+SET @SQLStmt = CONCAT('select 
+if(ReferenceNo is null,''-'',ReferenceNo) as ReferenceNo,if(Controlno is null,''-'',Controlno) as Controlno,
+if(AccountNo is null,''-'',AccountNo) as AccountNo,if(AccountName is null,''-'',AccountName) as AccountName,
+if(AmountPaid is null,0,AmountPaid) as  AmountPaid,if(if(CCharge is null,0,CCharge)=0,if(PCharge is null,0,PCharge),if(CCharge is null,0,CCharge)) as charge,
+trim(if(MLOutlet is null,''-'',MLOutlet)) as MLOutlet,if(MLZoneCode is null,''-'',MLZoneCode) as MLZoneCode,if(Operator is null,if(operatorid is null,0,operatorid),Operator) as Operator,
+if(Payer is null,''-'',Payer) as Payer,if(Address is null,''-'',Address) as Address,if(ContactNo is null,''-'',ContactNo) as ContactNo,  
+if(OtherDetails is null,''-'',OtherDetails) as  OtherDetails,if(DATETIME is null,''0000-00-00 00:00:00'',DATETIME) as DATETIME,
+if(RemoteOperator is null,''-'',RemoteOperator) as RemoteOperator,if(RemoteId is null,''-'',RemoteId) as RemoteOperatorId, 
+if(RemoteZoneCode is null,''-'',RemoteZoneCode) as RemoteZoneCode,if(CancelReason is null,''-'',CancelReason) as CancelReason,
+if(partnername is null,''-'',partnername) as partnername,if(assbranch is null,0,assbranch) as  assbranch,
+if(assoperator is null,0,assoperator) as  assoperator,if(Assbranchname is null,0,Assbranchname) as  Assbranchname,
+if(assFullName is null,0,assFullName) as  assFullName,if(currency is null,''-'',currency) as currency,if(Cancelleddate is null,''0000-00-00 00:00:00'',Cancelleddate) as Cancelleddate,
+if(CDType is null,''-'',CDType) as CDType,
+if(adjPHPCount is null,0,adjPHPCount) as  adjPHPCount,if(adjPHPprincipal is null,0,adjPHPprincipal) as  adjPHPprincipal,
+if(adjUSDCount is null,0,adjUSDCount) as  adjUSDCount,if(adjUSDprincipal is null,0,adjUSDprincipal) as  adjUSDprincipal,
+if(assZoneCode is null,0,assZoneCode) as  assZoneCode,if(operatorid is null,0,operatorid) as  operatorid
+from(
+SELECT 
+DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS DATETIME,Controlno, kptnno AS ReferenceNo,AccountNo,
+(CONCAT(AccountFName, '' '',AccountMName, '' '',AccountLName)) AS AccountName, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),(-1*AmountPaid),AmountPaid) AS AmountPaid, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),(-1*CustomerCharge),CustomerCharge) AS CCharge, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),(-1*PartnerCharge),PartnerCharge) AS PCharge, 
+b.branchname AS MLOutlet, IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) AS MLZoneCode, 
+ IF( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1) IS NULL,
+     (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1),
+     (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1)
+ ) AS Operator,
+(CONCAT(PayorFName,  '' '',PayorMName, '' '',PayorLName)) AS Payer, 
+PayorAddress AS Address, PayorContactNo AS ContactNo, OtherDetails, RemoteBranchCode AS RemoteId,
+RemoteZoneCode , RemoteOperatorID AS RemoteOperator, CancelReason, ''S'' AS CDType,
+DATE_FORMAT(Cancelleddate,''%m/%d/%Y'') AS Cancelleddate,
+accountlist.accountname AS partnername,s.currency,
+IF(RemoteBranchCode!='''',s.BranchCode,'''') AS assbranch, 
+		IF(RemoteBranchCode!='''',s.ZoneCode,'''') AS assZoneCode, 
+		IF(remoteoperatorid IS NOT NULL,operatorid,'''') AS assoperator, 
+		(SELECT branchName FROM kpusers.branches b1 WHERE b1.branchcode = assbranch AND (b1.zonecode= assZoneCode or b1.oldzonecode= assZoneCode)LIMIT 1 ) AS Assbranchname,
+		(SELECT bu.fullname FROM kpusers.sysuseraccounts sy  INNER JOIN kpusers.branchusers bu ON bu.resourceid=sy.resourceid  WHERE sy.userlogin=assoperator LIMIT 1) AS assFullName,
+		IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjPHPCount,
+IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjPHPprincipal,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjUSDCount,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjUSDprincipal,operatorid
+FROM kpbillspayment.sendout',_tblname,' s
+INNER JOIN kpusers.branches b ON 
+b.branchcode=IF(s.remotebranchcode='''',s.branchcode,s.remotebranchcode) 
+AND (b.zonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) or b.oldzonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode))
+INNER JOIN kpadminpartners.accountlist  ON accountlist.accountid = companyid 
+WHERE if(''',_accountid,'''<>'''',companyid=''',_accountid,''',1)  AND YEAR(transdate)=''',_year,''' and ',_type,'
+and (IF(s.remotezonecode='''',s.zonecode,s.remotezonecode)= ',_zcode,' or IF(s.remotezonecode='''',s.zonecode,s.remotezonecode)= ',_oldzcode,' ) AND b.regioncode= ',_rcode,'   
+AND DATE(transdate) BETWEEN ''',_datefrom,''' AND ''',_dateto,'''
+AND IF(cancelreason IN (''Cancel''),DATE(transdate)<>DATE(cancelleddate) AND DATE(cancelleddate) NOT BETWEEN ''',_datefrom,''' AND ''',_dateto,''',1)
+AND IF(cancelreason IN (''CHANGE Details''),
+IF(DATE(transdate)=DATE(cancelleddate),0,IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',0,1))
+,IF(DATE(transdate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND oldkptn IS NOT NULL AND CONCAT(SUBSTRING(kptnno,16,2),'''',SUBSTRING(kptnno,8,2))<>CONCAT(SUBSTRING(oldkptn,16,2),'''',SUBSTRING(oldkptn,8,2)),0,1))
+UNION ALL
+SELECT 
+DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS DATETIME,
+Controlno, 
+kptnno AS ReferenceNo, 
+AccountNo,
+(CONCAT(AccountFName, '' '',AccountMName, '' '',AccountLName)) AS AccountName, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',(-1*AmountPaid),AmountPaid) AS AmountPaid, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',(-1*CustomerCharge),CustomerCharge) AS CCharge, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',(-1*PartnerCharge),PartnerCharge) AS PCharge, 
+b.branchname AS MLOutlet, IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) AS MLZoneCode, 
+ IF( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1) IS NULL,
+     (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1),
+     (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1)
+ ) AS Operator,
+(CONCAT(PayorFName,  '' '',PayorMName, '' '',PayorLName)) AS Payer, 
+PayorAddress AS Address, PayorContactNo AS ContactNo, OtherDetails, RemoteBranchCode AS RemoteId,
+RemoteZoneCode , RemoteOperatorID AS RemoteOperator, CancelReason, ''S'' AS CDType,
+DATE_FORMAT(Cancelleddate,''%m/%d/%Y'') AS Cancelleddate,
+accountlist.accountname AS partnername,s.currency,
+IF(RemoteBranchCode!='''',s.BranchCode,'''') AS assbranch, 
+		IF(RemoteBranchCode!='''',s.ZoneCode,'''') AS assZoneCode, 
+		IF(remoteoperatorid IS NOT NULL,operatorid,'''') AS assoperator, 
+		(SELECT branchName FROM kpusers.branches b1 WHERE b1.branchcode = assbranch AND (b1.zonecode= assZoneCode or b1.oldzonecode= assZoneCode)LIMIT 1 ) AS Assbranchname,
+		(SELECT bu.fullname FROM kpusers.sysuseraccounts sy  INNER JOIN kpusers.branchusers bu ON bu.resourceid=sy.resourceid  WHERE sy.userlogin=assoperator LIMIT 1) AS assFullName,
+IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjPHPCount,
+IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjPHPprincipal,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjUSDCount,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjUSDprincipal,operatorid
+FROM `KPBillspaymentTransaction`.`CancellationsBillsypayment`  s
+INNER JOIN kpusers.branches b ON 
+b.branchcode=IF(s.remotebranchcode='''',s.branchcode,s.remotebranchcode) 
+AND (b.zonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) or b.oldzonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) )
+INNER JOIN kpadminpartners.accountlist  ON accountlist.accountid = companyid 
+WHERE if(''',_accountid,'''<>'''',companyid=''',_accountid,''',1)  AND YEAR(cancelleddate)=''',_year,''' AND DATE_FORMAT(Cancelleddate,''%m%d'')=',_tblname,'
+and (IF(s.remotezonecode='''',s.zonecode,s.remotezonecode)= ',_zcode,' or IF(s.remotezonecode='''',s.zonecode,s.remotezonecode)= ',_oldzcode,' ) AND b.regioncode= ',_rcode,'  
+AND DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' and  ',_type,'
+AND IF(cancelreason IN (''Cancel''),DATE(transdate)<>DATE(cancelleddate) AND DATE(transdate) NOT BETWEEN ''',_datefrom,''' AND ''',_dateto,''',0)
+)x WHERE  referenceno  IS NOT NULL  GROUP BY Controlno ORDER BY DATETIME; 
+');
+ELSEIF _rcode<>'' AND _acode<>'' AND _bcode='' THEN -- BY AREA
+SET @SQLStmt = CONCAT('select 
+if(ReferenceNo is null,''-'',ReferenceNo) as ReferenceNo,if(Controlno is null,''-'',Controlno) as Controlno,
+if(AccountNo is null,''-'',AccountNo) as AccountNo,if(AccountName is null,''-'',AccountName) as AccountName,
+if(AmountPaid is null,0,AmountPaid) as  AmountPaid,if(if(CCharge is null,0,CCharge)=0,if(PCharge is null,0,PCharge),if(CCharge is null,0,CCharge)) as charge,
+trim(if(MLOutlet is null,''-'',MLOutlet)) as MLOutlet,if(MLZoneCode is null,''-'',MLZoneCode) as MLZoneCode,if(Operator is null,if(operatorid is null,0,operatorid),Operator) as Operator,
+if(Payer is null,''-'',Payer) as Payer,if(Address is null,''-'',Address) as Address,if(ContactNo is null,''-'',ContactNo) as ContactNo,  
+if(OtherDetails is null,''-'',OtherDetails) as  OtherDetails,if(DATETIME is null,''0000-00-00 00:00:00'',DATETIME) as DATETIME,
+if(RemoteOperator is null,''-'',RemoteOperator) as RemoteOperator,if(RemoteId is null,''-'',RemoteId) as RemoteOperatorId, 
+if(RemoteZoneCode is null,''-'',RemoteZoneCode) as RemoteZoneCode,if(CancelReason is null,''-'',CancelReason) as CancelReason,
+if(partnername is null,''-'',partnername) as partnername,if(assbranch is null,0,assbranch) as  assbranch,
+if(assoperator is null,0,assoperator) as  assoperator,if(Assbranchname is null,0,Assbranchname) as  Assbranchname,
+if(assFullName is null,0,assFullName) as  assFullName,if(currency is null,''-'',currency) as currency,if(Cancelleddate is null,''0000-00-00 00:00:00'',Cancelleddate) as Cancelleddate,
+if(CDType is null,''-'',CDType) as CDType,
+if(adjPHPCount is null,0,adjPHPCount) as  adjPHPCount,if(adjPHPprincipal is null,0,adjPHPprincipal) as  adjPHPprincipal,
+if(adjUSDCount is null,0,adjUSDCount) as  adjUSDCount,if(adjUSDprincipal is null,0,adjUSDprincipal) as  adjUSDprincipal,
+if(assZoneCode is null,0,assZoneCode) as  assZoneCode,if(operatorid is null,0,operatorid) as  operatorid
+from(
+SELECT 
+DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS DATETIME,Controlno, kptnno AS ReferenceNo,AccountNo,
+(CONCAT(AccountFName, '' '',AccountMName, '' '',AccountLName)) AS AccountName, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),(-1*AmountPaid),AmountPaid) AS AmountPaid, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),(-1*CustomerCharge),CustomerCharge) AS CCharge, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),(-1*PartnerCharge),PartnerCharge) AS PCharge, 
+b.branchname AS MLOutlet, IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) AS MLZoneCode, 
+ IF( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1) IS NULL,
+     (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1),
+     (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1)
+ ) AS Operator,
+(CONCAT(PayorFName,  '' '',PayorMName, '' '',PayorLName)) AS Payer, 
+PayorAddress AS Address, PayorContactNo AS ContactNo, OtherDetails, RemoteBranchCode AS RemoteId,
+RemoteZoneCode , RemoteOperatorID AS RemoteOperator, CancelReason, ''S'' AS CDType,
+DATE_FORMAT(Cancelleddate,''%m/%d/%Y'') AS Cancelleddate,
+accountlist.accountname AS partnername,s.currency,
+IF(RemoteBranchCode!='''',s.BranchCode,'''') AS assbranch, 
+		IF(RemoteBranchCode!='''',s.ZoneCode,'''') AS assZoneCode, 
+		IF(remoteoperatorid IS NOT NULL,operatorid,'''') AS assoperator, 
+		(SELECT branchName FROM kpusers.branches b1 WHERE b1.branchcode = assbranch AND (b1.zonecode= assZoneCode or b1.oldzonecode= assZoneCode)LIMIT 1 ) AS Assbranchname,
+		(SELECT bu.fullname FROM kpusers.sysuseraccounts sy  INNER JOIN kpusers.branchusers bu ON bu.resourceid=sy.resourceid  WHERE sy.userlogin=assoperator LIMIT 1) AS assFullName,
+IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjPHPCount,
+IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjPHPprincipal,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjUSDCount,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjUSDprincipal,operatorid
+FROM kpbillspayment.sendout',_tblname,' s
+INNER JOIN kpusers.branches b ON 
+b.branchcode=IF(s.remotebranchcode='''',s.branchcode,s.remotebranchcode) 
+AND (b.zonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) or b.oldzonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) )
+INNER JOIN kpadminpartners.accountlist  ON accountlist.accountid = companyid 
+WHERE if(''',_accountid,'''<>'''',companyid=''',_accountid,''',1)  AND YEAR(transdate)=''',_year,''' and ',_type,'
+and (IF(s.remotezonecode='''',s.zonecode,s.remotezonecode)= ',_zcode,' or IF(s.remotezonecode='''',s.zonecode,s.remotezonecode)= ',_oldzcode,') AND b.regioncode= ',_rcode,'  AND b.areacode= ''',_acode,'''  
+AND DATE(transdate) BETWEEN ''',_datefrom,''' AND ''',_dateto,'''
+AND IF(cancelreason IN (''Cancel''),DATE(transdate)<>DATE(cancelleddate) AND DATE(cancelleddate) NOT BETWEEN ''',_datefrom,''' AND ''',_dateto,''',1)
+AND IF(cancelreason IN (''CHANGE Details''),
+IF(DATE(transdate)=DATE(cancelleddate),0,IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',0,1))
+,IF(DATE(transdate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND oldkptn IS NOT NULL AND CONCAT(SUBSTRING(kptnno,16,2),'''',SUBSTRING(kptnno,8,2))<>CONCAT(SUBSTRING(oldkptn,16,2),'''',SUBSTRING(oldkptn,8,2)),0,1))
+UNION ALL
+SELECT 
+DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS DATETIME,
+Controlno, 
+kptnno AS ReferenceNo, 
+AccountNo,
+(CONCAT(AccountFName, '' '',AccountMName, '' '',AccountLName)) AS AccountName, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',(-1*AmountPaid),AmountPaid) AS AmountPaid, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',(-1*CustomerCharge),CustomerCharge) AS CCharge, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',(-1*PartnerCharge),PartnerCharge) AS PCharge, 
+b.branchname AS MLOutlet, IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) AS MLZoneCode, 
+ IF( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1) IS NULL,
+     (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1),
+     (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1)
+ ) AS Operator,
+(CONCAT(PayorFName,  '' '',PayorMName, '' '',PayorLName)) AS Payer, 
+PayorAddress AS Address, PayorContactNo AS ContactNo, OtherDetails, RemoteBranchCode AS RemoteId,
+RemoteZoneCode , RemoteOperatorID AS RemoteOperator, CancelReason, ''S'' AS CDType,
+DATE_FORMAT(Cancelleddate,''%m/%d/%Y'') AS Cancelleddate,
+accountlist.accountname AS partnername,s.currency,
+IF(RemoteBranchCode!='''',s.BranchCode,'''') AS assbranch, 
+		IF(RemoteBranchCode!='''',s.ZoneCode,'''') AS assZoneCode, 
+		IF(remoteoperatorid IS NOT NULL,operatorid,'''') AS assoperator, 
+		(SELECT branchName FROM kpusers.branches b1 WHERE b1.branchcode = assbranch AND (b1.zonecode= assZoneCode or b1.oldzonecode= assZoneCode)LIMIT 1 ) AS Assbranchname,
+		(SELECT bu.fullname FROM kpusers.sysuseraccounts sy  INNER JOIN kpusers.branchusers bu ON bu.resourceid=sy.resourceid  WHERE sy.userlogin=assoperator LIMIT 1) AS assFullName,
+IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjPHPCount,
+IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjPHPprincipal,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjUSDCount,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjUSDprincipal,operatorid
+FROM `KPBillspaymentTransaction`.`CancellationsBillsypayment`  s
+INNER JOIN kpusers.branches b ON 
+b.branchcode=IF(s.remotebranchcode='''',s.branchcode,s.remotebranchcode) 
+AND (b.zonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) or b.oldzonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) )
+INNER JOIN kpadminpartners.accountlist  ON accountlist.accountid = companyid 
+WHERE if(''',_accountid,'''<>'''',companyid=''',_accountid,''',1)  AND YEAR(cancelleddate)=''',_year,''' AND DATE_FORMAT(Cancelleddate,''%m%d'')=',_tblname,'
+and (IF(s.remotezonecode='''',s.zonecode,s.remotezonecode)= ',_zcode,' or IF(s.remotezonecode='''',s.zonecode,s.remotezonecode)= ',_oldzcode,') AND b.regioncode= ',_rcode,'  AND b.areacode= ''',_acode,'''   
+AND DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' and  ',_type,'
+AND IF(cancelreason IN (''Cancel''),DATE(transdate)<>DATE(cancelleddate) AND DATE(transdate) NOT BETWEEN ''',_datefrom,''' AND ''',_dateto,''',0)
+)x WHERE  referenceno  IS NOT NULL  GROUP BY Controlno ORDER BY DATETIME; 
+');
+ELSE -- CAD/PARTNERS USER
+SET @SQLStmt = CONCAT('select 
+if(ReferenceNo is null,''-'',ReferenceNo) as ReferenceNo,if(Controlno is null,''-'',Controlno) as Controlno,
+if(AccountNo is null,''-'',AccountNo) as AccountNo,if(AccountName is null,''-'',AccountName) as AccountName,
+if(AmountPaid is null,0,AmountPaid) as  AmountPaid,if(if(CCharge is null,0,CCharge)=0,if(PCharge is null,0,PCharge),if(CCharge is null,0,CCharge)) as charge,
+trim(if(MLOutlet is null,''-'',MLOutlet)) as MLOutlet,if(MLZoneCode is null,''-'',MLZoneCode) as MLZoneCode,if(Operator is null,if(operatorid is null,0,operatorid),Operator) as Operator,
+if(Payer is null,''-'',Payer) as Payer,if(Address is null,''-'',Address) as Address,if(ContactNo is null,''-'',ContactNo) as ContactNo,  
+if(OtherDetails is null,''-'',OtherDetails) as  OtherDetails,if(DATETIME is null,''0000-00-00 00:00:00'',DATETIME) as DATETIME,
+if(RemoteOperator is null,''-'',RemoteOperator) as RemoteOperator,if(RemoteId is null,''-'',RemoteId) as RemoteOperatorId, 
+if(RemoteZoneCode is null,''-'',RemoteZoneCode) as RemoteZoneCode,if(CancelReason is null,''-'',CancelReason) as CancelReason,
+if(partnername is null,''-'',partnername) as partnername,if(assbranch is null,0,assbranch) as  assbranch,
+if(assoperator is null,0,assoperator) as  assoperator,if(Assbranchname is null,0,Assbranchname) as  Assbranchname,
+if(assFullName is null,0,assFullName) as  assFullName,if(currency is null,''-'',currency) as currency,
+if(Cancelleddate is null,''0000-00-00 00:00:00'',Cancelleddate) as Cancelleddate,
+if(CDType is null,''-'',CDType) as CDType,
+if(adjPHPCount is null,0,adjPHPCount) as  adjPHPCount,if(adjPHPprincipal is null,0,adjPHPprincipal) as  adjPHPprincipal,
+if(adjUSDCount is null,0,adjUSDCount) as  adjUSDCount,if(adjUSDprincipal is null,0,adjUSDprincipal) as  adjUSDprincipal,
+if(assZoneCode is null,0,assZoneCode) as  assZoneCode,if(operatorid is null,0,operatorid) as  operatorid
+from(
+SELECT 
+DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS DATETIME,Controlno, kptnno AS ReferenceNo,AccountNo,
+(CONCAT(AccountFName, '' '',AccountMName, '' '',AccountLName)) AS AccountName, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),(-1*AmountPaid),AmountPaid) AS AmountPaid, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),(-1*CustomerCharge),CustomerCharge) AS CCharge, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),(-1*PartnerCharge),PartnerCharge) AS PCharge, 
+b.branchname AS MLOutlet, IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) AS MLZoneCode, 
+ IF( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1) IS NULL,
+     (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1),
+     (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1)
+ ) AS Operator,
+(CONCAT(PayorFName,  '' '',PayorMName, '' '',PayorLName)) AS Payer, 
+PayorAddress AS Address, PayorContactNo AS ContactNo, OtherDetails, RemoteBranchCode AS RemoteId,
+RemoteZoneCode , RemoteOperatorID AS RemoteOperator, CancelReason, ''S'' AS CDType,
+DATE_FORMAT(Cancelleddate,''%m/%d/%Y'') AS Cancelleddate,
+accountlist.accountname AS partnername,s.currency,
+IF(RemoteBranchCode!='''',s.BranchCode,'''') AS assbranch, 
+		IF(RemoteBranchCode!='''',s.ZoneCode,'''') AS assZoneCode, 
+		IF(remoteoperatorid IS NOT NULL,operatorid,'''') AS assoperator, 
+		(SELECT branchName FROM kpusers.branches b1 WHERE b1.branchcode = assbranch AND (b1.zonecode= assZoneCode or b1.oldzonecode= assZoneCode)LIMIT 1 ) AS Assbranchname,
+		(SELECT bu.fullname FROM kpusers.sysuseraccounts sy  INNER JOIN kpusers.branchusers bu ON bu.resourceid=sy.resourceid  WHERE sy.userlogin=assoperator LIMIT 1) AS assFullName,
+IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjPHPCount,
+IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjPHPprincipal,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjUSDCount,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjUSDprincipal,operatorid
+FROM kpbillspayment.sendout',_tblname,' s
+LEFT JOIN kpusers.branches b ON 
+b.branchcode=IF(s.remotebranchcode='''',s.branchcode,s.remotebranchcode) AND (b.zonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) or b.oldzonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) )
+INNER JOIN kpadminpartners.accountlist  ON accountlist.accountid = companyid 
+WHERE if(''',_accountid,'''<>'''',companyid=''',_accountid,''',1)  AND YEAR(transdate)=''',_year,''' and ',_type,'
+AND DATE(transdate) BETWEEN ''',_datefrom,''' AND ''',_dateto,'''
+AND IF(cancelreason IN (''Cancel''),DATE(transdate)<>DATE(cancelleddate) AND DATE(cancelleddate) NOT BETWEEN ''',_datefrom,''' AND ''',_dateto,''',1)
+AND IF(cancelreason IN (''CHANGE Details''),
+IF(DATE(transdate)=DATE(cancelleddate),0,IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',0,1))
+,IF(DATE(transdate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND oldkptn IS NOT NULL AND CONCAT(SUBSTRING(kptnno,16,2),'''',SUBSTRING(kptnno,8,2))<>CONCAT(SUBSTRING(oldkptn,16,2),'''',SUBSTRING(oldkptn,8,2)),0,1))
+UNION ALL
+SELECT 
+DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS DATETIME,
+Controlno, 
+kptnno AS ReferenceNo, 
+AccountNo,
+(CONCAT(AccountFName, '' '',AccountMName, '' '',AccountLName)) AS AccountName, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',(-1*AmountPaid),AmountPaid) AS AmountPaid, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',(-1*CustomerCharge),CustomerCharge) AS CCharge, 
+IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''',(-1*PartnerCharge),PartnerCharge) AS PCharge, 
+b.branchname AS MLOutlet, IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) AS MLZoneCode, 
+ IF( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1) IS NULL,
+     (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1),
+     (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(s.remotebranchcode IS NULL OR s.remotebranchcode='''',s.operatorid,s.RemoteOperatorID) LIMIT 1)
+ ) AS Operator,
+(CONCAT(PayorFName,  '' '',PayorMName, '' '',PayorLName)) AS Payer, 
+PayorAddress AS Address, PayorContactNo AS ContactNo, OtherDetails, RemoteBranchCode AS RemoteId,
+RemoteZoneCode , RemoteOperatorID AS RemoteOperator, CancelReason, ''S'' AS CDType,
+DATE_FORMAT(Cancelleddate,''%m/%d/%Y'') AS Cancelleddate,
+accountlist.accountname AS partnername,s.currency,
+IF(RemoteBranchCode!='''',s.BranchCode,'''') AS assbranch, 
+		IF(RemoteBranchCode!='''',s.ZoneCode,'''') AS assZoneCode, 
+		IF(remoteoperatorid IS NOT NULL,operatorid,'''') AS assoperator, 
+		(SELECT branchName FROM kpusers.branches b1 WHERE b1.branchcode = assbranch AND (b1.zonecode= assZoneCode or b1.oldzonecode= assZoneCode)LIMIT 1 ) AS Assbranchname,
+		(SELECT bu.fullname FROM kpusers.sysuseraccounts sy  INNER JOIN kpusers.branchusers bu ON bu.resourceid=sy.resourceid  WHERE sy.userlogin=assoperator LIMIT 1) AS assFullName,
+IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjPHPCount,
+IF(currency=''PHP'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjPHPprincipal,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),1,0),0) AS adjUSDCount,
+IF(currency=''USD'',IF(DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' AND cancelreason IN (''Cancel''),amountpaid,0),0) AS adjUSDprincipal,operatorid
+FROM `KPBillspaymentTransaction`.`CancellationsBillsypayment`  s
+INNER JOIN kpusers.branches b ON 
+b.branchcode=IF(s.remotebranchcode='''',s.branchcode,s.remotebranchcode) AND (b.zonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) or b.oldzonecode=IF(s.remotezonecode='''',s.zonecode,s.remotezonecode) )
+INNER JOIN kpadminpartners.accountlist  ON accountlist.accountid = companyid 
+WHERE if(''',_accountid,'''<>'''',companyid=''',_accountid,''',1)  AND YEAR(cancelleddate)=''',_year,''' AND DATE_FORMAT(Cancelleddate,''%m%d'')=',_tblname,'
+AND DATE(cancelleddate) BETWEEN ''',_datefrom,''' AND ''',_dateto,''' and  ',_type,'
+AND IF(cancelreason IN (''Cancel''),DATE(transdate)<>DATE(cancelleddate) AND DATE(transdate) NOT BETWEEN ''',_datefrom,''' AND ''',_dateto,''',0)
+)x WHERE  referenceno  IS NOT NULL  GROUP BY Controlno ORDER BY DATETIME; 
+');
+END IF; 
+PREPARE Stmt FROM @SQLStmt;
+EXECUTE Stmt;
+DEALLOCATE PREPARE Stmt;
+END $$
+DELIMITER ;

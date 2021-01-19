@@ -1,0 +1,176 @@
+
+
+USE `kpbillspayment`;
+
+/* Procedure structure for procedure `getRFCBillspay` */
+
+DROP PROCEDURE IF EXISTS  `getRFCBillspay` ;
+
+DELIMITER $$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `getRFCBillspay`(IN sotable VARCHAR(4), IN accountCode VARCHAR(30),IN zcode VARCHAR(5),IN rcode VARCHAR(5),IN acode VARCHAR(5),IN bcode VARCHAR(5),IN _year VARCHAR(5),IN _globe VARCHAR(50),IN _usertype VARCHAR(10),IN oldzcode VARCHAR(5))
+BEGIN
+DECLARE globe VARCHAR(100);
+IF _globe = 'INNOVE' THEN
+	SET globe = 'CHAR_LENGTH(AccountNo) = 9';
+ELSEIF _globe = 'GLOBE' THEN
+	SET globe = 'CHAR_LENGTH(AccountNo) <> 9';
+ELSE
+	SET globe = '1';
+END IF;
+IF _usertype = "NOTIAD" THEN #NOT IAD USER
+		SET @n_query= CONCAT('
+		select 
+		Control_No as CR_Control_No,Transaction_Date as CR_Transaction_Date,KPTN as CR_KPTN,
+		OLD_KPTN as CR_OLD_KPTN,Account_No as CR_Account_No,Account_Name as CR_Account_Name,Payor_Name as CR_Payor_Name,
+		Payment_To as CR_Payment_To,IR_No as CR_IR_NO,Amount_Paid as CR_Amount_Paid,Cancellation_Charge as CR_Cancellation_Charge,
+		Other_Charge as CR_Other_Charge,Operator_ID as CR_Operator_ID,
+		Branch_Code as CR_Branch_Code,Zone_Code,Payor_Address as CR_Payor_Address,Payor_ContactNo as CR_Payor_ContactNo,
+		Other_Details as CR_Other_Details,operatorname as CR_Employee_Name
+		from(
+		SELECT soTable.Controlno as Control_No,soTable.TransDate as Transaction_Date,
+			soTable.KPTNNo as KPTN,if(soTable.oldkptnno is null,soTable.OLDKPTN,oldkptnno) as OLD_KPTN,soTable.AccountNo as Account_No,
+			concat(soTable.AccountFname,'' '',soTable.AccountMname,'' '',soTable.AccountLname)as Account_Name,
+			concat(soTable.PayorFname,'' '',soTable.PayorMname,'' '',soTable.PayorLname)as Payor_Name,
+			acl.AccountName as Payment_To, soTable.IRNo as IR_No, soTable.amountPaid as Amount_Paid, 
+			soTable.CancelCharge as Cancellation_Charge,soTable.CustomerCharge as Other_Charge,soTable.OperatorID as Operator_ID,
+			soTable.BranchCode as Branch_Code, soTable.ZoneCode as Zone_Code, soTable.PayorAddress as Payor_Address, 
+			soTable.PayorContactNo as Payor_ContactNo, soTable.OtherDetails as Other_Details,soTable.OperatorID as operatorname
+			FROM kpbillspayment.sendout',sotable,' soTable 
+			INNER JOIN kpadminpartners.accountlist acl on acl.AccountID=soTable.CompanyID
+			WHERE  
+			soTable.CompanyID=''',accountCode,''' and ',globe,'
+			AND YEAR(soTable.TransDate)= ''',_year,'''
+			and (soTable.oldkptnno is Not null or soTable.OLDKPTN is Not null) 
+			ORDER BY soTable.TransDate
+			)x group by KPTN
+');
+ELSEIF _usertype = "IAD" THEN #IAD USER
+	IF accountCode = "" THEN #NO SPECIFIC PARTNER - FOR SUMMARY REPORT
+		IF bcode<>"" AND acode<>"" AND rcode<>"" THEN # BY BRANCH
+			SET @n_query= CONCAT('
+			select 
+		Control_No as CR_Control_No,Transaction_Date as CR_Transaction_Date,KPTN as CR_KPTN,
+		OLD_KPTN as CR_OLD_KPTN,Account_No as CR_Account_No,Account_Name as CR_Account_Name,Payor_Name as CR_Payor_Name,
+		Payment_To as CR_Payment_To,IR_No as CR_IR_NO,Amount_Paid as CR_Amount_Paid,Cancellation_Charge as CR_Cancellation_Charge,
+		Other_Charge as CR_Other_Charge,Operator_ID as CR_Operator_ID,
+		Branch_Code as CR_Branch_Code,Zone_Code,Payor_Address as CR_Payor_Address,Payor_ContactNo as CR_Payor_ContactNo,
+		Other_Details as CR_Other_Details,operatorname as CR_Employee_Name
+		from(
+			SELECT soTable.Controlno as Control_No,soTable.TransDate as Transaction_Date,
+			soTable.KPTNNo as KPTN,if(soTable.oldkptnno is null,soTable.OLDKPTN,oldkptnno) as OLD_KPTN,soTable.AccountNo as Account_No,
+			concat(soTable.AccountFname,'' '',soTable.AccountMname,'' '',soTable.AccountLname)as Account_Name,
+			concat(soTable.PayorFname,'' '',soTable.PayorMname,'' '',soTable.PayorLname)as Payor_Name,
+			acl.AccountName as Payment_To, soTable.IRNo as IR_No, soTable.amountPaid as Amount_Paid, 
+			soTable.CancelCharge as Cancellation_Charge,soTable.CustomerCharge as Other_Charge,soTable.OperatorID as Operator_ID,
+			soTable.BranchCode as Branch_Code, soTable.ZoneCode as Zone_Code, soTable.PayorAddress as Payor_Address, 
+			soTable.PayorContactNo as Payor_ContactNo, soTable.OtherDetails as Other_Details,soTable.OperatorID as operatorname
+			FROM kpbillspayment.sendout',sotable,' soTable 
+			INNER JOIN kpadminpartners.accountlist acl on acl.AccountID=soTable.CompanyID
+			INNER JOIN kpusers.branches b ON b.branchcode=',bcode,' AND (b.zonecode=',zcode,' and b.oldzonecode=',oldzcode,' )
+			WHERE YEAR(soTable.TransDate)= ''',_year,'''
+			AND soTable.branchcode=',bcode,' AND (soTable.ZoneCode=',zcode,' or soTable.ZoneCode=',oldzcode,')
+			and (soTable.oldkptnno is Not null or soTable.OLDKPTN is Not null) 
+			ORDER BY soTable.TransDate
+			)x group by KPTN
+			');
+		END IF;
+	ELSEIF accountCode <> "" THEN #WITH SPECIFIC PARTNER 
+		IF bcode<>"" AND acode<>"" AND rcode<>"" THEN #BY BRANCH
+			SET @n_query= CONCAT('
+				select 
+		Control_No as CR_Control_No,Transaction_Date as CR_Transaction_Date,KPTN as CR_KPTN,
+		OLD_KPTN as CR_OLD_KPTN,Account_No as CR_Account_No,Account_Name as CR_Account_Name,Payor_Name as CR_Payor_Name,
+		Payment_To as CR_Payment_To,IR_No as CR_IR_NO,Amount_Paid as CR_Amount_Paid,Cancellation_Charge as CR_Cancellation_Charge,
+		Other_Charge as CR_Other_Charge,Operator_ID as CR_Operator_ID,
+		Branch_Code as CR_Branch_Code,Zone_Code,Payor_Address as CR_Payor_Address,Payor_ContactNo as CR_Payor_ContactNo,
+		Other_Details as CR_Other_Details,operatorname as CR_Employee_Name
+		from(
+		SELECT soTable.Controlno as Control_No,soTable.TransDate as Transaction_Date,
+			soTable.KPTNNo as KPTN,if(soTable.oldkptnno is null,soTable.OLDKPTN,oldkptnno) as OLD_KPTN,soTable.AccountNo as Account_No,
+			concat(soTable.AccountFname,'' '',soTable.AccountMname,'' '',soTable.AccountLname)as Account_Name,
+			concat(soTable.PayorFname,'' '',soTable.PayorMname,'' '',soTable.PayorLname)as Payor_Name,
+			acl.AccountName as Payment_To, soTable.IRNo as IR_No, soTable.amountPaid as Amount_Paid, 
+			soTable.CancelCharge as Cancellation_Charge,soTable.CustomerCharge as Other_Charge,soTable.OperatorID as Operator_ID,
+			soTable.BranchCode as Branch_Code, soTable.ZoneCode as Zone_Code, soTable.PayorAddress as Payor_Address, 
+			soTable.PayorContactNo as Payor_ContactNo, soTable.OtherDetails as Other_Details,soTable.OperatorID as operatorname			
+			FROM kpbillspayment.sendout',sotable,' soTable 
+			INNER JOIN kpadminpartners.accountlist acl on acl.AccountID=soTable.CompanyID
+			INNER JOIN kpusers.branches b ON b.branchcode=',bcode,' AND (b.zonecode=',zcode,' and b.oldzonecode=',oldzcode,' )
+			WHERE  
+			soTable.CompanyID=''',accountCode,''' and ',globe,'
+			AND soTable.branchcode=',bcode,' AND (soTable.ZoneCode=',zcode,' or soTable.ZoneCode=',oldzcode,')
+			AND YEAR(soTable.TransDate)= ''',_year,'''
+			and (soTable.oldkptnno is Not null or soTable.OLDKPTN is Not null) 
+			ORDER BY soTable.TransDate
+			)x group by KPTN
+			');
+		ELSEIF bcode="" AND acode<>"" AND rcode<>"" THEN #BY AREA
+			SET @n_query= CONCAT('
+				select 
+		Control_No as CR_Control_No,Transaction_Date as CR_Transaction_Date,KPTN as CR_KPTN,
+		OLD_KPTN as CR_OLD_KPTN,Account_No as CR_Account_No,Account_Name as CR_Account_Name,Payor_Name as CR_Payor_Name,
+		Payment_To as CR_Payment_To,IR_No as CR_IR_NO,Amount_Paid as CR_Amount_Paid,Cancellation_Charge as CR_Cancellation_Charge,
+		Other_Charge as CR_Other_Charge,Operator_ID as CR_Operator_ID,
+		Branch_Code as CR_Branch_Code,Zone_Code,Payor_Address as CR_Payor_Address,Payor_ContactNo as CR_Payor_ContactNo,
+		Other_Details as CR_Other_Details,operatorname as CR_Employee_Name
+		from(
+		SELECT soTable.Controlno as Control_No,soTable.TransDate as Transaction_Date,
+			soTable.KPTNNo as KPTN,if(soTable.oldkptnno is null,soTable.OLDKPTN,oldkptnno) as OLD_KPTN,soTable.AccountNo as Account_No,
+			concat(soTable.AccountFname,'' '',soTable.AccountMname,'' '',soTable.AccountLname)as Account_Name,
+			concat(soTable.PayorFname,'' '',soTable.PayorMname,'' '',soTable.PayorLname)as Payor_Name,
+			acl.AccountName as Payment_To, soTable.IRNo as IR_No, soTable.amountPaid as Amount_Paid, 
+			soTable.CancelCharge as Cancellation_Charge,soTable.CustomerCharge as Other_Charge,soTable.OperatorID as Operator_ID,
+			soTable.BranchCode as Branch_Code, soTable.ZoneCode as Zone_Code, soTable.PayorAddress as Payor_Address, 
+			soTable.PayorContactNo as Payor_ContactNo, soTable.OtherDetails as Other_Details,soTable.OperatorID as operatorname			
+			FROM kpbillspayment.sendout',sotable,' soTable 
+			INNER JOIN kpadminpartners.accountlist acl on acl.AccountID=soTable.CompanyID
+			INNER JOIN kpusers.branches b ON b.branchcode=if(soTable.cancelledbybranchcode is null,soTable.branchcode,soTable.cancelledbybranchcode) 
+			AND (b.zonecode=',zcode,' and b.oldzonecode=',oldzcode,') and b.areacode=''',acode,''' and b.regioncode=',rcode,'
+			WHERE  
+			soTable.CompanyID=''',accountCode,''' and ',globe,'
+		        AND (soTable.ZoneCode=',zcode,' or soTable.ZoneCode=',oldzcode,')
+			AND YEAR(soTable.TransDate)= ''',_year,'''
+			and (soTable.oldkptnno is Not null or soTable.OLDKPTN is Not null) 
+			ORDER BY soTable.TransDate
+			)x group by KPTN
+			');
+		ELSEIF bcode="" AND acode="" AND rcode<>"" THEN #BY REGION
+			SET @n_query= CONCAT('
+				select 
+		Control_No as CR_Control_No,Transaction_Date as CR_Transaction_Date,KPTN as CR_KPTN,
+		OLD_KPTN as CR_OLD_KPTN,Account_No as CR_Account_No,Account_Name as CR_Account_Name,Payor_Name as CR_Payor_Name,
+		Payment_To as CR_Payment_To,IR_No as CR_IR_NO,Amount_Paid as CR_Amount_Paid,Cancellation_Charge as CR_Cancellation_Charge,
+		Other_Charge as CR_Other_Charge,Operator_ID as CR_Operator_ID,
+		Branch_Code as CR_Branch_Code,Zone_Code,Payor_Address as CR_Payor_Address,Payor_ContactNo as CR_Payor_ContactNo,
+		Other_Details as CR_Other_Details,operatorname as CR_Employee_Name
+		from(
+		SELECT soTable.Controlno as Control_No,soTable.TransDate as Transaction_Date,
+			soTable.KPTNNo as KPTN,if(soTable.oldkptnno is null,soTable.OLDKPTN,oldkptnno) as OLD_KPTN,soTable.AccountNo as Account_No,
+			concat(soTable.AccountFname,'' '',soTable.AccountMname,'' '',soTable.AccountLname)as Account_Name,
+			concat(soTable.PayorFname,'' '',soTable.PayorMname,'' '',soTable.PayorLname)as Payor_Name,
+			acl.AccountName as Payment_To, soTable.IRNo as IR_No, soTable.amountPaid as Amount_Paid, 
+			soTable.CancelCharge as Cancellation_Charge,soTable.CustomerCharge as Other_Charge,soTable.OperatorID as Operator_ID,
+			soTable.BranchCode as Branch_Code, soTable.ZoneCode as Zone_Code, soTable.PayorAddress as Payor_Address, 
+			soTable.PayorContactNo as Payor_ContactNo, soTable.OtherDetails as Other_Details,soTable.OperatorID as operatorname			
+			FROM kpbillspayment.sendout',sotable,' soTable 
+			INNER JOIN kpadminpartners.accountlist acl on acl.AccountID=soTable.CompanyID
+			INNER JOIN kpusers.branches b ON b.branchcode=if(soTable.cancelledbybranchcode is null,soTable.branchcode,soTable.cancelledbybranchcode) 
+			AND (b.zonecode=',zcode,' and b.oldzonecode=',oldzcode,')  and b.regioncode=',rcode,'
+			WHERE  
+			soTable.CompanyID=''',accountCode,''' and ',globe,'
+		        AND (soTable.ZoneCode=',zcode,' or soTable.ZoneCode=',oldzcode,')
+			AND YEAR(soTable.TransDate)= ''',_year,'''
+			and (soTable.oldkptnno is Not null or soTable.OLDKPTN is Not null) 
+			ORDER BY soTable.TransDate
+			)x group by KPTN
+			');
+		END IF;
+	END IF;
+END IF;															
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

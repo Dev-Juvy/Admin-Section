@@ -1,0 +1,47 @@
+DELIMITER $$
+
+USE `kppartners`$$
+
+DROP PROCEDURE IF EXISTS `HOgetdailypayouthalfcommitted`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetdailypayouthalfcommitted`(IN potable VARCHAR(4), IN accountCode VARCHAR(30),IN _year VARCHAR(5),IN _flag VARCHAR(5))
+BEGIN
+DECLARE uniteller VARCHAR(100);
+IF _flag = '10' THEN
+	SET uniteller = 'p.refno like ''%ML10%'' ';
+ELSEIF _flag = '0' THEN
+	SET uniteller = 'p.refno not like ''%ML10%'' ';
+ELSE 
+	SET uniteller = '1';
+END IF;
+SET @n_query= CONCAT('SELECT 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,cancelleddate,DATE_FORMAT(transdate,''%r'') AS TIME,Receiver_Phone,
+		IF(operator IS NULL,operatorid,operator) AS Operator,currency,cancelreason,branchcode,principal,charge,adjprincipal,adjCharge,
+		socancelprincipal,socancelcharge,''HALF-COMMITTED'' as flag,branchname,zonecode,operatorid,partnername
+		FROM(
+SELECT 
+		'''' AS controlno,'''' AS kptn,p.refno AS referenceno,p.sendername,p.receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS cancelleddate,'''' AS Receiver_Phone,
+		p.currency,IF(p.cancelledreason IS NULL,'''',p.cancelledreason) AS cancelreason,
+		p.branchcode,p.principal,
+		(SELECT a.chargeamount
+FROM kpadminpartners.tierdetails a
+INNER JOIN kpadminpartners.accountdetail  b ON b.brackettiercode=a.tiercode
+WHERE accountid=''',accountCode,''' AND currency=p.currency  AND ROUND(p.principal,2) BETWEEN minimum AND maximum) as  charge,
+		0 AS adjprincipal,0 AS adjCharge,
+		0 AS socancelprincipal,0 AS socancelcharge,'''' AS flag,p.zonecode,p.operatorid,'''' AS partnername,p.operatorid AS Operator,
+(SELECT b.branchname FROM kpusers.branches b WHERE b.branchcode=p.branchcode AND b.zonecode=IF(p.isremote=1,p.remotezonecode,p.zonecode) LIMIT 1) AS branchname
+		FROM `kpadminpartnerslog`.`halfcommittedlogs` p 
+		INNER JOIN `kpadminpartnerslog`.`partnershistorylogs` a ON a.refno=p.refno AND remarks=1 AND a.partnerid=p.accountcode
+		WHERE p.accountcode=''',accountCode,'''  AND 
+YEAR(transdate)=',_year,' AND DATE_FORMAT(transdate,''%m%d'')=',potable,'  
+AND IF((SELECT referenceno FROM kppartners.payout',potable,' b WHERE b.accountcode=p.accountcode AND b.referenceno=p.refno) IS NOT NULL,0,1)
+ and ',uniteller,'
+		ORDER BY transdate DESC )X GROUP BY referenceno,transdate;
+');															
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

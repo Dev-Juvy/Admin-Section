@@ -1,0 +1,50 @@
+DELIMITER $$
+
+USE `kpdomestic`$$
+
+DROP PROCEDURE IF EXISTS `DomesticSOtoWalletPO`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `DomesticSOtoWalletPO`(IN _datefrom VARCHAR(15), IN _dateto VARCHAR(15))
+BEGIN
+DECLARE _monthdate VARCHAR(4);
+DECLARE _year VARCHAR(4);
+DROP  TEMPORARY  TABLE IF EXISTS `kpdomestic`.domsotowalpo;
+CREATE  TEMPORARY TABLE `kpdomestic`.domsotowalpo(
+		id VARCHAR(100),legend VARCHAR(100),controlno VARCHAR(100),claimeddate VARCHAR(100),
+		sendername VARCHAR(100),receivername VARCHAR(100),operatorid VARCHAR(100),
+		kptn VARCHAR(100),transdate VARCHAR(100),sendoutbranch VARCHAR(100),amount VARCHAR(100),
+		charge VARCHAR(100), commission VARCHAR(100));
+		
+WHILE DATE(_datefrom) <= DATE(_dateto) DO
+SET _monthdate = DATE_FORMAT(_datefrom,'%m%d');
+SET _year = DATE_FORMAT(_datefrom,'%Y');
+SET @SQLStmt = CONCAT(
+	'INSERT INTO `kpdomestic`.domsotowalpo(
+		id, legend, controlno, claimeddate, sendername, receivername, operatorid, 
+		kptn, transdate, sendoutbranch, amount, charge, commission)'
+						       
+	'SELECT ID,IF(cancelleddate IS NOT NULL and cancelleddate<>''0000-00-00 00:00:00'' 
+		and cancelleddate<>'''' and cancelledreason=''Wrong Payout'' ,''**'',
+		if(cancelledreason in (''RETURN TO SENDER''),''*'','''')) AS legend,
+		Controlno, claimeddate, SenderName, receivername, operatorid,
+		kptnno as kptn, SODate AS transdate, SOBranch AS sendoutbranch, Principal AS amount, 
+		IF(ServiceCharge IS NULL,''0'',ServiceCharge)  AS charge, ''0.00'' AS Commission 
+		FROM kpdomestic.payout',_monthdate,' WHERE YEAR(ClaimedDate)=',_year,' and 
+		(cancelledreason not in ('''',''Request for Change'',''Cancel Sendout'') 
+		or cancelledreason is null) AND Controlno LIKE ''%mlw%'''
+		);
+	
+SET _datefrom = DATE_ADD(_datefrom, INTERVAL 1 DAY);                
+PREPARE Stmt FROM @SQLStmt;
+EXECUTE Stmt;
+DEALLOCATE PREPARE Stmt;
+END WHILE;
+SET @sql3 = CONCAT('SELECT id, legend, controlno, IF(claimeddate IS NULL,''0000-00-00 00:00:00'',claimeddate) AS claimeddate, 
+		sendername,receivername, operatorid, kptn,IF(transdate IS NULL,''0000-00-00 00:00:00'',transdate) AS transdate, 
+		sendoutbranch, amount,IF(charge IS NULL,0,charge) AS charge,commission  FROM `kpdomestic`.domsotowalpo;');
+PREPARE gtpo3 FROM @sql3;
+EXECUTE gtpo3;
+		
+END$$
+
+DELIMITER ;

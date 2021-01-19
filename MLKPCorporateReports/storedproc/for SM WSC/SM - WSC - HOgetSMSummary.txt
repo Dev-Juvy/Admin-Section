@@ -1,0 +1,50 @@
+DELIMITER $$
+
+USE `kppartners`$$
+
+DROP PROCEDURE IF EXISTS `HOgetSMSummary`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetSMSummary`(IN sotable VARCHAR(4), IN accountCode VARCHAR(35),IN _year VARCHAR(6),IN _username VARCHAR(50),IN _role VARCHAR(50),IN _terminalid VARCHAR(50),IN _locationid VARCHAR(50))
+BEGIN
+SET @n_query= CONCAT('
+SELECT sublocationid,locations,COUNT(referenceno) AS COUNT,SUM(principal) AS principal,SUM(charge) AS charge, SUM(total) AS total,flag
+FROM 
+(
+SELECT DISTINCT s.referenceno AS referenceno, sublocationid,sl.sublocationdesc AS locations,s.principal,s.charge, (s.principal+s.charge) AS total,''SO'' AS flag
+FROM kppartners.sendout',sotable,' s 
+INNER JOIN kppartnerstransactions.corporatesendouts so ON so.kptn=s.kptn
+INNER JOIN kppartners.sotxnref sf ON sf.accountcode=so.accountid AND sf.referenceno=so.referenceno
+INNER JOIN `kpORNO`.`orDetails` od ON od.accountid=s.accountcode AND od.refno=s.referenceno
+INNER JOIN `kpadminpartners`.`ws_Sublocation` sl ON sl.subaccountid=s.accountcode AND sl.isactive=1 AND sl.sublocationid=od.locationid
+WHERE s.accountcode=''',accountCode,''' AND YEAR(s.transdate)=',_year,'  AND sf.transactiontype IN (''3'')
+AND IF (''',_role,''' = ''KP-PARTNERTELLER'',s.operatorid = ''',_username,''', #AND so.stationno=''',_terminalid,''',
+#IF (''',_role,''' = ''KP-SUPERVISOR'',s.operatorid = ''',_username,''' AND so.sessionid=''',_locationid,''',1))
+IF (''',_role,''' = ''KP-SUPERVISOR'', so.sessionid=''',_locationid,''',1))
+AND (DATE(s.transdate)=DATE(s.cancelleddate) OR s.cancelleddate IS NULL OR s.cancelleddate=''0000-00-00 00:00:00'' OR s.cancelleddate='''' 
+OR IF(s.cancelreason=''CHANGE DETAILS'',DATE(s.transdate)<>DATE(s.cancelleddate),
+IF(s.cancelreason=''CANCEL'',IF(DATE(s.transdate)<>DATE(s.cancelleddate),DATE_FORMAT(s.transdate,''%m%d'')=',sotable,',1),0))) 
+
+UNION ALL
+
+SELECT 
+DISTINCT 
+p.referenceno AS referenceno, sublocationid,sl.sublocationdesc AS locations,
+p.principal,p.servicecharge, (p.principal+p.servicecharge) AS total,''PO'' AS flag
+FROM kppartners.payout',sotable,'  p
+INNER JOIN kppartners.potxnref sf ON sf.accountcode=p.accountcode AND sf.referenceno=p.referenceno
+INNER JOIN `kpORNO`.`orDetails` od ON od.accountid=p.accountcode AND od.refno=p.referenceno
+INNER JOIN `kpadminpartners`.`ws_Sublocation` sl ON sl.subaccountid=p.accountcode AND sl.isactive=1 AND sl.sublocationid=od.locationid
+WHERE p.accountcode=''',accountCode,'''  
+AND IF (''',_role,''' = ''KP-PARTNERTELLER'',IF(p.isremote,p.remoteoperatorid,p.operatorid) = ''',_username,''', #AND p.stationid=''',_terminalid,''',
+#IF (''',_role,''' = ''KP-SUPERVISOR'',IF(p.isremote,p.remoteoperatorid,p.operatorid) = ''',_username,''' AND p.sessionid=''',_locationid,''',1))
+IF (''',_role,''' = ''KP-SUPERVISOR'',p.sessionid=''',_locationid,''',1))
+AND YEAR(p.claimeddate)=',_year,' AND p.reason NOT IN (''CHANGE Details'') AND sf.transactiontype IN (''3'')
+
+)X GROUP BY flag,sublocationid order by flag desc
+');
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

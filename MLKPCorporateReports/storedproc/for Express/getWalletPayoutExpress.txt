@@ -1,0 +1,237 @@
+DELIMITER $$
+
+USE `kpmobile`$$
+
+DROP PROCEDURE IF EXISTS `getWalletPayoutExpress`$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `getWalletPayoutExpress`(IN potable VARCHAR(4),IN _year VARCHAR(10) ,IN accountCode VARCHAR(30), IN zcode VARCHAR(5),IN rcode VARCHAR(5),IN acode VARCHAR(5),IN bcode VARCHAR(5),IN _role VARCHAR(50), IN oldzcode VARCHAR(5) )
+BEGIN
+IF _role = "NOTIAD" THEN #NOT IAD USER
+	SET @SQLStmt = CONCAT(' select 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(cancelleddate,''%Y-%m-%d %r'') AS cancelleddate,DATE_FORMAT(cancelleddate,''%r'') AS TIME,
+		if(Receiver_Phone is null,'''',Receiver_Phone) as Receiver_Phone,
+		if(operator is null,operatorid,operator) as Operator,currency,if(cancelreason is null,'''',cancelreason) as cancelreason,
+		branchcode,principal,if(charge is null,0,charge) as charge,adjprincipal,adjCharge,
+		socancelprincipal,if(socancelcharge is null,0,socancelcharge) as socancelcharge,
+		if(flag is null,'''',flag) as flag,if(branchname is null,'''',branchname) as branchname,
+		if(commission is null,0,commission) as commission,zonecode,operatorid,operatorid as partnername
+		from(
+SELECT kptn,flag,cancelleddate,cancelreason,IF (controlno IS NULL,'''',controlno)AS controlno,sendername, 
+IF (transdate IS NULL,''0000-00-00 00:00:00'',transdate)AS transdate,IF (TIME IS NULL,''00:00:00'',TIME)AS TIME,
+IF (sodate IS NULL,''0000-00-00 00:00:00'',sodate)AS sodate,receivername,oldkptn,Receiver_Phone,referenceno,Currency,principal,servicecharge,charge
+,socancelprincipal,socancelcharge,adjprincipal,adjcharge,branchcode,branchname,operator,operatorid,IF (commission IS NULL,0,commission) AS commission,zonecode,'''' as partnername
+FROM (
+SELECT 
+DISTINCT IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , p.oldkptnno,p.kptnno)  AS kptn,
+IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' ,''**'','''') AS flag, 
+p.claimeddate AS cancelleddate,p.CancelledReason AS cancelreason,
+p.controlno AS controlno,
+p.sendername,p.sodate AS transdate,DATE_FORMAT(p.claimeddate,''%H:%i:%S'') AS TIME,p.sodate,p.receivername AS receivername,
+'' '' AS oldkptn,''-'' AS Receiver_Phone,
+IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , p.oldkptnno,p.kptnno)  AS referenceno,p.Currency,p.principal AS principal,p.servicecharge AS servicecharge,p.servicecharge AS charge,
+p.principal AS socancelprincipal,
+p.servicecharge AS socancelcharge, 
+IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' AND DATE(p.cancelleddate)=DATE(p.claimeddate),principal * -1,0) AS  adjprincipal,			
+IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''''''' AND DATE(p.cancelleddate)=DATE(p.claimeddate),
+p.servicecharge * -1,0) AS  adjcharge,
+p.branchcode AS branchcode,
+(SELECT b.branchname FROM kpusers.branches b WHERE b.branchcode=p.branchcode AND b.zonecode=IF(p.isremote=1,p.remotezonecode,p.zonecode) LIMIT 1) AS branchname,
+p.operatorid AS Operator,p.operatorid,
+(SELECT commission FROM `kpforms`.`PayoutCommission` pc WHERE pc.kptn = p.kptnno AND pc.isactive = 1 LIMIT 1) AS commission,p.zonecode AS zonecode
+FROM `kpmobiletransactions`.payout',potable,' p
+WHERE  p.kptnno LIKE ''%mlw%''  
+AND  IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , 
+if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),operatorid,CancelledByOperatorID),operatorid) = ''',accountCode,'''
+AND  YEAR(p.claimeddate) = ''',_year,'''
+) X GROUP BY kptn ORDER BY cancelleddate )x
+');
+ELSEIF _role = "IAD" THEN #IAD USER
+	IF accountCode = "" THEN #NO SPECIFIC PARTNER - FOR SUMMARY REPORT
+		IF bcode<>"" AND acode<>"" AND rcode<>"" THEN # BY BRANCH
+			SET @SQLStmt= CONCAT('select 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(cancelleddate,''%Y-%m-%d %r'') AS cancelleddate,DATE_FORMAT(cancelleddate,''%r'') AS TIME,
+		if(Receiver_Phone is null,'''',Receiver_Phone) as Receiver_Phone,
+		if(operator is null,operatorid,operator) as Operator,currency,if(cancelreason is null,'''',cancelreason) as cancelreason,
+		branchcode,principal,if(charge is null,0,charge) as charge,adjprincipal,adjCharge,
+		socancelprincipal,socancelcharge,if(flag is null,'''',flag) as flag,if(branchname is null,'''',branchname) as branchname,
+		if(commission is null,0,commission) as commission,zonecode,operatorid,operatorid as partnername
+		from(
+				SELECT kptn,flag,cancelleddate,cancelreason,IF (controlno IS NULL,'''',controlno)AS controlno,sendername, 
+			IF (transdate IS NULL,''0000-00-00 00:00:00'',transdate)AS transdate,IF (TIME IS NULL,''00:00:00'',TIME)AS TIME,
+			IF (sodate IS NULL,''0000-00-00 00:00:00'',sodate)AS sodate,receivername,oldkptn,Receiver_Phone,referenceno,Currency,principal,servicecharge,charge
+			,socancelprincipal,socancelcharge,adjprincipal,adjcharge,branchcode,branchname,operator,operatorid,IF (commission IS NULL,0,commission) AS commission,zonecode,partnername
+			FROM (
+			SELECT 
+			DISTINCT IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , p.oldkptnno,p.kptnno)  AS kptn,
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' ,''**'','''') AS flag, 
+			p.claimeddate AS cancelleddate,p.CancelledReason AS cancelreason,
+			p.controlno AS controlno,
+			p.sendername,p.sodate AS transdate,DATE_FORMAT(p.claimeddate,''%H:%i:%S'') AS TIME,p.sodate,p.receivername AS receivername,
+			'' '' AS oldkptn,''-'' AS Receiver_Phone,
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , p.oldkptnno,p.kptnno)  AS referenceno,p.Currency,p.principal AS principal,p.servicecharge AS servicecharge,p.servicecharge AS charge,
+			p.principal AS socancelprincipal,
+			p.servicecharge AS socancelcharge, 
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' AND DATE(p.cancelleddate)=DATE(p.claimeddate),principal * -1,0) AS  adjprincipal,			
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''''''' AND DATE(p.cancelleddate)=DATE(p.claimeddate),
+			p.servicecharge * -1,0) AS  adjcharge,
+			p.branchcode AS branchcode,
+			(SELECT b.branchname FROM kpusers.branches b WHERE b.branchcode=p.branchcode AND b.zonecode=IF(p.isremote=1,p.remotezonecode,p.zonecode) LIMIT 1) AS branchname,
+			p.operatorid AS Operator,p.operatorid,p.operatorid AS  partnername,
+			(SELECT commission FROM `kpforms`.`PayoutCommission` pc WHERE pc.kptn = p.kptnno AND pc.isactive = 1 LIMIT 1) AS commission,p.zonecode AS zonecode
+			FROM `kpmobiletransactions`.payout',potable,' p
+			WHERE  p.kptnno LIKE ''%mlw%''
+			AND  YEAR(p.claimeddate) = ''',_year,'''
+			AND (p.zonecode=',zcode,' or p.zonecode=',oldzcode,')
+			and  IF(isremote=1,remotebranch,IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , 
+			if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),branchcode,cancelledBybranchcode),branchcode)) = ''',bcode,'''
+			) X GROUP BY kptn ORDER BY cancelleddate
+			)x	
+			');
+		END IF ;
+	ELSEIF accountCode <> "" THEN #WITH SPECIFIC PARTNER 
+		IF bcode<>"" AND acode<>"" AND rcode<>"" THEN #BY BRANCH
+			SET @SQLStmt= CONCAT('select 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(cancelleddate,''%Y-%m-%d %r'') AS cancelleddate,DATE_FORMAT(cancelleddate,''%r'') AS TIME,
+		if(Receiver_Phone is null,'''',Receiver_Phone) as Receiver_Phone,
+		if(operator is null,operatorid,operator) as Operator,currency,if(cancelreason is null,'''',cancelreason) as cancelreason,
+		branchcode,principal,if(charge is null,0,charge) as charge,adjprincipal,adjCharge,
+		socancelprincipal,socancelcharge,if(flag is null,'''',flag) as flag,if(branchname is null,'''',branchname) as branchname,
+		if(commission is null,0,commission) as commission,zonecode,operatorid,operatorid as partnername
+		from(
+				SELECT kptn,flag,cancelleddate,cancelreason,IF (controlno IS NULL,'''',controlno)AS controlno,sendername, 
+			IF (transdate IS NULL,''0000-00-00 00:00:00'',transdate)AS transdate,IF (TIME IS NULL,''00:00:00'',TIME)AS TIME,
+			IF (sodate IS NULL,''0000-00-00 00:00:00'',sodate)AS sodate,receivername,oldkptn,Receiver_Phone,referenceno,Currency,principal,servicecharge,charge
+			,socancelprincipal,socancelcharge,adjprincipal,adjcharge,branchcode,branchname,operator,operatorid,IF (commission IS NULL,0,commission) AS commission,zonecode,'''' as partnername
+			FROM (
+			SELECT 
+			DISTINCT IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , p.oldkptnno,p.kptnno)   AS kptn,
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' ,''**'','''') AS flag, 
+			p.claimeddate AS cancelleddate,p.CancelledReason AS cancelreason,
+			p.controlno AS controlno,
+			p.sendername,p.sodate AS transdate,DATE_FORMAT(p.claimeddate,''%H:%i:%S'') AS TIME,p.sodate,p.receivername AS receivername,
+			'' '' AS oldkptn,''-'' AS Receiver_Phone,
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , p.oldkptnno,p.kptnno)  AS referenceno,p.Currency,p.principal AS principal,p.servicecharge AS servicecharge,p.servicecharge AS charge,
+			p.principal AS socancelprincipal,
+			p.servicecharge AS socancelcharge, 
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' AND DATE(p.cancelleddate)=DATE(p.claimeddate),principal * -1,0) AS  adjprincipal,			
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''''''' AND DATE(p.cancelleddate)=DATE(p.claimeddate),
+			p.servicecharge * -1,0) AS  adjcharge,
+			p.branchcode AS branchcode,
+			(SELECT b.branchname FROM kpusers.branches b WHERE b.branchcode=p.branchcode AND b.zonecode=IF(p.isremote=1,p.remotezonecode,p.zonecode) LIMIT 1) AS branchname,
+			p.operatorid AS Operator,p.operatorid,
+			(SELECT commission FROM `kpforms`.`PayoutCommission` pc WHERE pc.kptn = p.kptnno AND pc.isactive = 1 LIMIT 1) AS commission,p.zonecode AS zonecode
+			FROM `kpmobiletransactions`.payout',potable,' p
+			WHERE  p.kptnno LIKE ''%mlw%''  
+			AND IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , 
+			if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),operatorid,CancelledByOperatorID),operatorid) = ''',accountCode,'''
+			AND  YEAR(p.claimeddate) = ''',_year,''' 
+			AND (p.zonecode=',zcode,' or p.zonecode=',oldzcode,') 
+			AND  IF(isremote=1,remotebranch,IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , 
+			if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),branchcode,cancelledBybranchcode),branchcode)) = ''',bcode,'''
+		
+			) X GROUP BY kptn ORDER BY cancelleddate
+			)x	
+			');
+			ELSEIF bcode="" AND acode<>"" AND rcode<>"" THEN #BY AREA
+			SET @SQLStmt= CONCAT('select 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(cancelleddate,''%Y-%m-%d %r'') AS cancelleddate,DATE_FORMAT(cancelleddate,''%r'') AS TIME,
+		if(Receiver_Phone is null,'''',Receiver_Phone) as Receiver_Phone,
+		if(operator is null,operatorid,operator) as Operator,currency,if(cancelreason is null,'''',cancelreason) as cancelreason,
+		branchcode,principal,if(charge is null,0,charge) as charge,adjprincipal,adjCharge,
+		socancelprincipal,socancelcharge,if(flag is null,'''',flag) as flag,if(branchname is null,'''',branchname) as branchname,
+		if(commission is null,0,commission) as commission,zonecode,operatorid,operatorid as partnername
+		from(
+				SELECT kptn,flag,cancelleddate,cancelreason,IF (controlno IS NULL,'''',controlno)AS controlno,sendername, 
+			IF (transdate IS NULL,''0000-00-00 00:00:00'',transdate)AS transdate,IF (TIME IS NULL,''00:00:00'',TIME)AS TIME,
+			IF (sodate IS NULL,''0000-00-00 00:00:00'',sodate)AS sodate,receivername,oldkptn,Receiver_Phone,referenceno,Currency,principal,servicecharge,charge
+			,socancelprincipal,socancelcharge,adjprincipal,adjcharge,branchcode,branchname,operator,operatorid,IF (commission IS NULL,0,commission) AS commission,zonecode,'''' as partnername
+			FROM (
+			SELECT 
+			DISTINCT IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , p.oldkptnno,p.kptnno)   AS kptn,
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' ,''**'','''') AS flag, 
+			p.claimeddate AS cancelleddate,p.CancelledReason AS cancelreason,
+			p.controlno AS controlno,
+			p.sendername,p.sodate AS transdate,DATE_FORMAT(p.claimeddate,''%H:%i:%S'') AS TIME,p.sodate,p.receivername AS receivername,
+			'' '' AS oldkptn,''-'' AS Receiver_Phone,
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , p.oldkptnno,p.kptnno)  AS referenceno,p.Currency,p.principal AS principal,p.servicecharge AS servicecharge,p.servicecharge AS charge,
+			p.principal AS socancelprincipal,
+			p.servicecharge AS socancelcharge, 
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' AND DATE(p.cancelleddate)=DATE(p.claimeddate),principal * -1,0) AS  adjprincipal,			
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''''''' AND DATE(p.cancelleddate)=DATE(p.claimeddate),
+			p.servicecharge * -1,0) AS  adjcharge,
+			p.branchcode AS branchcode,
+			(SELECT b.branchname FROM kpusers.branches b WHERE b.branchcode=p.branchcode AND b.zonecode=IF(p.isremote=1,p.remotezonecode,p.zonecode) LIMIT 1) AS branchname,
+			p.operatorid AS Operator,p.operatorid,
+			(SELECT commission FROM `kpforms`.`PayoutCommission` pc WHERE pc.kptn = p.kptnno AND pc.isactive = 1 LIMIT 1) AS commission,p.zonecode AS zonecode
+			FROM `kpmobiletransactions`.payout',potable,' p
+			INNER JOIN kpusers.branches b on 
+			b.branchcode=IF(isremote=1,remotebranch,IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , 
+			if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),p.branchcode,cancelledBybranchcode),p.branchcode))   
+			and b.zonecode=',zcode,' and b.oldzonecode=',oldzcode,' and b.areacode=''',acode,''' and b.regioncode=',rcode,'
+			WHERE  p.kptnno LIKE ''%mlw%''  
+			AND IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , 
+			if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),operatorid,CancelledByOperatorID),operatorid) = ''',accountCode,'''
+			AND  YEAR(p.claimeddate) = ''',_year,'''
+			AND (p.zonecode=',zcode,' or p.zonecode=',oldzcode,')
+			
+			) X GROUP BY kptn ORDER BY cancelleddate
+			)x	
+			');
+			ELSEIF bcode="" AND acode="" AND rcode<>"" THEN #BY REGION
+			SET @SQLStmt= CONCAT('select 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(cancelleddate,''%Y-%m-%d %r'') AS cancelleddate,DATE_FORMAT(cancelleddate,''%r'') AS TIME,
+		if(Receiver_Phone is null,'''',Receiver_Phone) as Receiver_Phone,
+		if(operator is null,operatorid,operator) as Operator,currency,if(cancelreason is null,'''',cancelreason) as cancelreason,
+		branchcode,principal,if(charge is null,0,charge) as charge,adjprincipal,adjCharge,
+		socancelprincipal,if(socancelcharge is null,0,socancelcharge) as socancelcharge,if(flag is null,'''',flag) as flag,if(branchname is null,'''',branchname) as branchname,
+		if(commission is null,0,commission) as commission,zonecode,operatorid,operatorid as partnername
+		from(
+				SELECT kptn,flag,cancelleddate,cancelreason,IF (controlno IS NULL,'''',controlno)AS controlno,sendername, 
+			IF (transdate IS NULL,''0000-00-00 00:00:00'',transdate)AS transdate,IF (TIME IS NULL,''00:00:00'',TIME)AS TIME,
+			IF (sodate IS NULL,''0000-00-00 00:00:00'',sodate)AS sodate,receivername,oldkptn,Receiver_Phone,referenceno,Currency,principal,servicecharge,charge
+			,socancelprincipal,socancelcharge,adjprincipal,adjcharge,branchcode,branchname,operator,operatorid,IF (commission IS NULL,0,commission) AS commission,zonecode,'''' as partnername
+			FROM (
+			SELECT 
+			DISTINCT IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , p.oldkptnno,p.kptnno)   AS kptn,
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' ,''**'','''') AS flag, 
+			p.claimeddate AS cancelleddate,p.CancelledReason AS cancelreason,
+			p.controlno AS controlno,
+			p.sendername,p.sodate AS transdate,DATE_FORMAT(p.claimeddate,''%H:%i:%S'') AS TIME,p.sodate,p.receivername AS receivername,
+			'' '' AS oldkptn,''-'' AS Receiver_Phone,
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , p.oldkptnno,p.kptnno)  AS referenceno,p.Currency,p.principal AS principal,p.servicecharge AS servicecharge,p.servicecharge AS charge,
+			p.principal AS socancelprincipal,
+			p.servicecharge AS socancelcharge, 
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' AND DATE(p.cancelleddate)=DATE(p.claimeddate),principal * -1,0) AS  adjprincipal,			
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''''''' AND DATE(p.cancelleddate)=DATE(p.claimeddate),
+			p.servicecharge * -1,0) AS  adjcharge,
+			p.branchcode AS branchcode,
+			(SELECT b.branchname FROM kpusers.branches b WHERE b.branchcode=p.branchcode AND b.zonecode=IF(p.isremote=1,p.remotezonecode,p.zonecode) LIMIT 1) AS branchname,
+			p.operatorid AS Operator,p.operatorid,
+			(SELECT commission FROM `kpforms`.`PayoutCommission` pc WHERE pc.kptn = p.kptnno AND pc.isactive = 1 LIMIT 1) AS commission,p.zonecode AS zonecode
+			FROM `kpmobiletransactions`.payout',potable,' p
+			INNER JOIN kpusers.branches b on 
+			b.branchcode=IF(isremote=1,remotebranch,IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , 
+			if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),p.branchcode,cancelledBybranchcode),p.branchcode))  
+			and b.zonecode=',zcode,' and b.oldzonecode=',oldzcode,' and b.regioncode=',rcode,'
+			WHERE  p.kptnno LIKE ''%mlw%''  
+			AND IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' , 
+			if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),operatorid,CancelledByOperatorID),operatorid) = ''',accountCode,'''
+			AND  YEAR(p.claimeddate) = ''',_year,''' 
+			AND (p.zonecode=',zcode,' or p.zonecode=',oldzcode,')
+			
+			) X GROUP BY kptn )x
+			');
+		END IF ;
+	END IF;	
+END IF;
+PREPARE Stmt FROM @SQLStmt;
+EXECUTE Stmt;
+DEALLOCATE PREPARE Stmt;
+END$$
+
+DELIMITER ;

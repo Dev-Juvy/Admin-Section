@@ -1,0 +1,30 @@
+DELIMITER $$
+
+USE `kpbillspayment`$$
+
+DROP PROCEDURE IF EXISTS `HOgetdailyRFCBP`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetdailyRFCBP`(IN _tblname VARCHAR(4),IN _accountid VARCHAR(15),IN _year VARCHAR(5))
+BEGIN
+SET @SQLStmt = CONCAT('SELECT  
+		controlno,kptn,referenceno,sendername,receivername,transdate,cancelleddate,Operator,cancelreason,currency,principal,charge,InitiatedBy,RequestNo,DateRequest,RequestType	
+		FROM (
+		SELECT 
+		controlno,kptnno AS kptn,kptnno AS referenceno,
+		CONCAT(accountfname,'' '',accountmname,'' '',accountlname) AS sendername,
+		CONCAT(payorfname,'' '',payormname,'' '',payorlname) AS receivername,transdate,cancelleddate,
+		CONCAT(payorfname,'' '',payormname,'' '',payorlname) AS Operator,cancelreason,currency,
+		amountpaid AS principal,(customercharge + partnercharge) AS charge,
+		'''' AS InitiatedBy,'''' AS RequestNo,''0000-00-00 00:00:00'' AS DateRequest,'''' AS 	RequestType	
+		FROM `KPBillspaymentTransaction`.`CancellationsBillsypayment`
+		WHERE YEAR(cancelleddate)=',_year,' AND Cancelreason IN (''CHANGE Details'')
+		AND DATE_FORMAT(cancelleddate,''%m%d'')=',_tblname,' AND cancelledbyoperatorid=''',_accountid,'''
+		and kptnno like ''%bpx%''
+		ORDER BY cancelleddate ASC)X GROUP BY kptn;
+');
+PREPARE Stmt FROM @SQLStmt;
+EXECUTE Stmt;
+DEALLOCATE PREPARE Stmt;
+END$$
+
+DELIMITER ;

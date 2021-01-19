@@ -1,0 +1,126 @@
+DELIMITER $$
+
+USE `kpmobile`$$
+
+DROP PROCEDURE IF EXISTS `HOWalletGetExpressCP`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOWalletGetExpressCP`(IN potable VARCHAR(4),  IN zcode VARCHAR(5),IN rcode VARCHAR(5),IN acode VARCHAR(5),IN bcode VARCHAR(5),IN _year VARCHAR(5), IN _usertype VARCHAR(10),IN _username VARCHAR(50),  IN oldzcode VARCHAR(5))
+BEGIN
+IF _usertype = "NOTIAD" THEN #NOT IAD USER
+		SET @n_query= CONCAT('
+		SELECT 
+		controlno,oldkptnno AS kptn,oldkptnno AS referenceno,sendername,receivername,sodate AS transdate,cancelleddate,
+		
+		if(
+		(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname 
+		FROM `kpmobile`.`mobileaccounts` a1 WHERE a1.username=CancelledByOperatorID AND a1.isactive=1 LIMIT 1)is null,CancelledByOperatorID
+		,(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname 
+		FROM `kpmobile`.`mobileaccounts` a1 WHERE a1.username=CancelledByOperatorID AND a1.isactive=1 LIMIT 1))AS Operator,
+		
+		CancelledReason AS cancelreason,currency,principal,IF(ServiceCharge IS NULL,0,ServiceCharge) AS charge, (IF(CancelledCustCharge IS NULL,0,CancelledCustCharge)+IF(CancelledEmpCharge IS NULL,0,CancelledEmpCharge)) AS socancelcharge			
+		FROM `kptransactions`.`pocancel` p
+		WHERE YEAR(cancelleddate)=',_year,' AND Cancelledtype IN (''PAYOUT'')
+		AND DATE_FORMAT(cancelleddate,''%m%d'')=',potable,'
+		AND CancelledByOperatorID=''',_username,'''
+		GROUP BY oldkptnno ORDER BY cancelleddate ASC 
+');
+ELSEIF _usertype = "IAD" THEN #IAD USER
+	IF _username = "" THEN #NO SPECIFIC PARTNER - FOR SUMMARY
+		IF bcode<>"" AND acode<>"" AND rcode<>"" THEN#BY BRANCH
+			SET @n_query= CONCAT('
+			SELECT 
+		controlno,oldkptnno AS kptn,oldkptnno AS referenceno,sendername,receivername,sodate AS transdate,cancelleddate,
+		
+		if(
+		(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname 
+		FROM `kpmobile`.`mobileaccounts` a1 WHERE a1.username=CancelledByOperatorID AND a1.isactive=1 LIMIT 1)is null,CancelledByOperatorID
+		,(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname 
+		FROM `kpmobile`.`mobileaccounts` a1 WHERE a1.username=CancelledByOperatorID AND a1.isactive=1 LIMIT 1))AS Operator,
+				
+		if(
+		(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname 
+		FROM `kpmobile`.`mobileaccounts` a1 WHERE a1.username=if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),operatorid,CancelledByOperatorID) AND a1.isactive=1 LIMIT 1)is null,CancelledByOperatorID
+		,(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname 
+		FROM `kpmobile`.`mobileaccounts` a1 WHERE a1.username=if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),operatorid,CancelledByOperatorID) AND a1.isactive=1 LIMIT 1))AS partnername,
+				
+		CancelledReason AS cancelreason,currency,principal,IF(ServiceCharge IS NULL,0,ServiceCharge) AS charge, (IF(CancelledCustCharge IS NULL,0,CancelledCustCharge)+IF(CancelledEmpCharge IS NULL,0,CancelledEmpCharge)) AS socancelcharge	
+		FROM `kptransactions`.`pocancel` p
+		WHERE YEAR(cancelleddate)=',_year,' AND Cancelledtype IN (''PAYOUT'')
+		AND DATE_FORMAT(cancelleddate,''%m%d'')=',potable,'
+		AND IF(isremote=1,remotebranch,if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),branchcode,cancelledBybranchcode))=',bcode,' 
+		AND (IF(isremote=1,remotezonecode,p.zonecode)=',zcode,' or IF(isremote=1,remotezonecode,p.zonecode)=',oldzcode,')
+		GROUP BY oldkptnno ORDER BY cancelleddate ASC
+			');
+		END IF;
+	ELSEIF _username <> "" THEN #WITH SPECIFIC PARTNER 
+		IF bcode<>"" AND acode<>"" AND rcode<>"" THEN#BY BRANCH
+			SET @n_query= CONCAT('
+			SELECT 
+		controlno,oldkptnno AS kptn,oldkptnno AS referenceno,sendername,receivername,sodate AS transdate,cancelleddate,
+		
+		if(
+		(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname 
+		FROM `kpmobile`.`mobileaccounts` a1 WHERE a1.username=CancelledByOperatorID AND a1.isactive=1 LIMIT 1)is null,CancelledByOperatorID
+		,(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname 
+		FROM `kpmobile`.`mobileaccounts` a1 WHERE a1.username=CancelledByOperatorID AND a1.isactive=1 LIMIT 1))AS Operator,		
+		
+		CancelledReason AS cancelreason,currency,principal,IF(ServiceCharge IS NULL,0,ServiceCharge) AS charge, (IF(CancelledCustCharge IS NULL,0,CancelledCustCharge)+IF(CancelledEmpCharge IS NULL,0,CancelledEmpCharge)) AS socancelcharge	
+		FROM `kptransactions`.`pocancel` p
+		WHERE YEAR(cancelleddate)=',_year,' AND Cancelledtype IN (''PAYOUT'')
+		AND DATE_FORMAT(cancelleddate,''%m%d'')=',potable,'
+		AND if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),operatorid,CancelledByOperatorID)=''',_username,'''
+		AND IF(isremote=1,remotebranch,if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),branchcode,cancelledBybranchcode))=',bcode,' 
+		AND (IF(isremote=1,remotezonecode,p.zonecode)=',zcode,' or IF(isremote=1,remotezonecode,p.zonecode)=',oldzcode,')
+		GROUP BY oldkptnno ORDER BY cancelleddate ASC 
+			');
+		ELSEIF bcode="" AND acode<>"" AND rcode<>"" THEN#BY AREA
+			SET @n_query= CONCAT('
+			SELECT 
+		controlno,oldkptnno AS kptn,oldkptnno AS referenceno,sendername,receivername,sodate AS transdate,cancelleddate,
+		
+		if(
+		(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname 
+		FROM `kpmobile`.`mobileaccounts` a1 WHERE a1.username=CancelledByOperatorID AND a1.isactive=1 LIMIT 1)is null,CancelledByOperatorID
+		,(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname 
+		FROM `kpmobile`.`mobileaccounts` a1 WHERE a1.username=CancelledByOperatorID AND a1.isactive=1 LIMIT 1))AS Operator,
+		
+		CancelledReason AS cancelreason,currency,principal,IF(ServiceCharge IS NULL,0,ServiceCharge) AS charge, (IF(CancelledCustCharge IS NULL,0,CancelledCustCharge)+IF(CancelledEmpCharge IS NULL,0,CancelledEmpCharge)) AS socancelcharge	
+		FROM `kptransactions`.`pocancel` p
+		INNER JOIN kpusers.branches b ON  b.zonecode = ',zcode,' and b.oldzonecode = ',oldzcode,' and b.regioncode = ',rcode,' and b.areacode=''',acode,'''  
+		AND b.branchcode=IF(isremote=1,remotebranch,if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),p.branchcode,cancelledBybranchcode)) 	
+		WHERE YEAR(cancelleddate)=',_year,' AND Cancelledtype IN (''PAYOUT'')
+		AND DATE_FORMAT(cancelleddate,''%m%d'')=',potable,'
+		AND if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),operatorid,CancelledByOperatorID)=''',_username,'''
+		AND (IF(isremote=1,remotezonecode,p.zonecode)=',zcode,' or IF(isremote=1,remotezonecode,p.zonecode)=',oldzcode,')
+		GROUP BY oldkptnno ORDER BY cancelleddate ASC 
+			');
+		ELSEIF bcode="" AND acode="" AND rcode<>"" THEN#BY REGION
+			SET @n_query= CONCAT('
+			SELECT 
+		controlno,oldkptnno AS kptn,oldkptnno AS referenceno,sendername,receivername,sodate AS transdate,cancelleddate,
+		
+		if(
+		(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname 
+		FROM `kpmobile`.`mobileaccounts` a1 WHERE a1.username=CancelledByOperatorID AND a1.isactive=1 LIMIT 1)is null,CancelledByOperatorID
+		,(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname 
+		FROM `kpmobile`.`mobileaccounts` a1 WHERE a1.username=CancelledByOperatorID AND a1.isactive=1 LIMIT 1))AS Operator,
+		
+		CancelledReason AS cancelreason,currency,principal,IF(ServiceCharge IS NULL,0,ServiceCharge) AS charge, (IF(CancelledCustCharge IS NULL,0,CancelledCustCharge)+IF(CancelledEmpCharge IS NULL,0,CancelledEmpCharge)) AS socancelcharge	
+		FROM `kptransactions`.`pocancel` p
+		INNER JOIN kpusers.branches b ON  b.zonecode = ',zcode,' and b.oldzonecode = ',oldzcode,' and b.regioncode = ',rcode,'   
+		AND b.branchcode=IF(isremote=1,remotebranch,if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),p.branchcode,cancelledBybranchcode))		
+		WHERE YEAR(cancelleddate)=',_year,' AND Cancelledtype IN (''PAYOUT'')
+		AND DATE_FORMAT(cancelleddate,''%m%d'')=',potable,'
+		AND if((cancelledBybranchcode = ''001'' or cancelledBybranchcode = ''002''),operatorid,CancelledByOperatorID)=''',_username,'''
+		AND (IF(isremote=1,remotezonecode,p.zonecode)=',zcode,' or IF(isremote=1,remotezonecode,p.zonecode)=',oldzcode,')
+		GROUP BY oldkptnno ORDER BY cancelleddate ASC 
+			');
+		END IF;
+	END IF;
+END IF;															
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

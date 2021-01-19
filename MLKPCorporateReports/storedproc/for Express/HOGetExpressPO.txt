@@ -1,0 +1,252 @@
+DELIMITER $$
+
+USE `kpOFW`$$
+
+DROP PROCEDURE IF EXISTS `HOGetExpressPO`$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `HOGetExpressPO`(IN _db VARCHAR(15),IN _date VARCHAR(4),IN _year VARCHAR(4),IN operatorid VARCHAR(35),IN _zonecode VARCHAR(1),IN _regioncode VARCHAR(3),IN _areacode VARCHAR(1),IN _branchcode VARCHAR(3),IN _usertype VARCHAR(10),IN _oldzonecode VARCHAR(1))
+BEGIN
+IF _usertype = "NOTIAD" THEN #NOT IAD USER
+		SET @n_query= CONCAT('
+		select 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(cancelleddate,''%Y-%m-%d %r'') AS cancelleddate,DATE_FORMAT(cancelleddate,''%r'') AS TIME,
+		if(Receiver_Phone is null,'''',Receiver_Phone) as Receiver_Phone,
+		if(operator is null,operatorid,operator) as Operator,currency,if(cancelreason is null,'''',cancelreason) as cancelreason,
+		branchcode,principal,if(charge is null,0,charge) as charge,adjprincipal,adjCharge,
+		socancelprincipal,socancelcharge,if(flag is null,'''',flag) as flag,if(branchname is null,'''',branchname) as branchname,
+		if(commission is null,0,commission) as commission,zonecode,operatorid,operatorid as partnername
+		from(
+		SELECT 
+		s.controlno,s.kptnno AS kptn,s.kptnno AS referenceno,
+		IF(s.SenderName IS NULL, CONCAT(s.SenderlName, '', '' ,s.SenderfName, '' '', s.SendermName),s.SenderName) AS sendername,
+		IF(s.receivername IS NULL, CONCAT(s.receiverlname, '', '' ,s.receiverfname, '' '', s.receivermname),s.receivername) AS receivername,
+		if(length(s.kptnno)=21,(DATE_FORMAT(CONCAT(SUBSTRING(s.kptnno,20,2),SUBSTRING(s.kptnno,18,2),SUBSTRING(s.kptnno,7,2)),''%Y-%m-%d'')),
+		if(LENGTH(s.kptnno)=20,(DATE_FORMAT(CONCAT(SUBSTRING(s.kptnno,19,2),SUBSTRING(s.kptnno,17,2),SUBSTRING(s.kptnno,7,2)),''%Y-%m-%d'')),
+		DATE_FORMAT(CONCAT(SUBSTRING(s.kptnno,17,6),SUBSTRING(s.kptnno,4,2)),''%Y-%m-%d''))) AS transdate,
+		s.claimeddate AS cancelleddate,DATE_FORMAT(s.claimeddate,''%r'') AS TIME,s.ReceiverContactNo AS Receiver_Phone,
+		IF((SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1) IS NULL,
+		(SELECT CONCAT(a2.lastname,'', '',a2.firstname,'' '',a2.middlename) AS fullname FROM `kpOFW`.`SubOFWaccounts` a2 WHERE a2.username=s.operatorid AND a2.isactive=1  AND a2.isagent=1 LIMIT 1),
+		(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1)
+		) AS Operator,s.currency,s.CancelledReason AS cancelreason,
+		IF(s.CancelledByBranchCode IS NOT NULL AND s.CancelledByBranchCode<>'''',s.CancelledByBranchCode,IF(s.isremote=1,s.remotebranch,s.branchcode)) AS branchcode,
+		s.principal,IF(s.ServiceCharge IS NULL,0,s.ServiceCharge) AS charge,
+		IF((SELECT p.cancelleddate FROM ',_db,'.`pocancel` p WHERE p.oldkptnno=s.kptnno LIMIT 1) IS NOT NULL,s.principal * -1,0) AS adjprincipal,
+		IF((SELECT p.cancelleddate FROM ',_db,'.`pocancel` p WHERE p.oldkptnno=s.kptnno LIMIT 1) IS NOT NULL,IF(s.ServiceCharge IS NULL,0,s.ServiceCharge) * -1,0) AS adjCharge,
+		s.principal AS socancelprincipal,IF(s.ServiceCharge IS NULL,0,s.ServiceCharge) AS socancelcharge,		
+		IF((SELECT p.cancelleddate FROM ',_db,'.`pocancel` p WHERE p.oldkptnno=s.kptnno LIMIT 1) IS NOT NULL,''**'','''') AS flag,
+		#IF(s.CancelledByBranchCode IS NOT NULL AND s.CancelledByBranchCode<>'''',s.CancelledByBranchCode,IF(s.isremote=1,s.remotebranch,s.branchcode)) AS branchname,
+		s.SOBranch AS branchname,
+(select if(cp.commission is null,0,cp.commission) from `kpOFWLogs`.`MLExpressPayouts` cp where cp.kptn=s.kptnno limit 1 ) as commission,		
+		if(s.isremote=1,s.RemoteZoneCode,s.zonecode) as zonecode,s.operatorid,'''' as partnername		
+		FROM ',_db,'.`payout` s
+		WHERE 
+		s.kptnno LIKE ''%mlx%'' AND YEAR(s.claimeddate)=',_year,' AND DATE_FORMAT(s.claimeddate,''%d'')=',_date,' 
+		AND s.operatorid=''',operatorid,'''
+		
+		union all
+		
+		SELECT 
+		s.controlno,s.kptnno as kptn,s.kptnno as referenceno,
+		IF(s1.sendername IS NULL,s.sendername,s1.sendername) AS sendername,
+		IF(s1.receivername IS NULL,s.receivername,s1.receivername) AS receivername,
+		s.transdate,c.cancelleddate AS cancelleddate,DATE_FORMAT(s.transdate,''%r'') AS time,
+		s.ReceiverContactNo as Receiver_Phone,
+		IF((SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1) IS NULL,
+		(SELECT CONCAT(a2.lastname,'', '',a2.firstname,'' '',a2.middlename) AS fullname FROM `kpOFW`.`SubOFWaccounts` a2 WHERE a2.username=s.operatorid AND a2.isactive=1  AND a2.isagent=1 LIMIT 1),
+		(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1)
+		) AS Operator,s.Currency,c.canceldetails as cancelreason,
+		if(s.isremote=1,s.RemoteBranch,s.branchcode) as branchcode,s.principal,s.charge,
+		0 as adjprincipal,
+		0 as adjCharge,
+		s.principal as socancelprincipal,s.charge as socancelcharge,
+		if(c.canceldetails=''Return to Sender'',''*'','''') as flag,
+		s.SenderBranchID as branchname,
+		(select if(sologs.commission is null,0,sologs.commission) from `kpOFWLogs`.`MLExpressSendouts` sologs where sologs.kptn=s.kptnno limit 1) as commission,
+		if(s.isremote=1,s.RemoteZoneCode,s.zonecode) as zonecode,s.operatorid,'''' as partnername
+		FROM ',_db,'.`sendout` s
+		LEFT JOIN ',_db,'.socancel c ON c.transdate=s.transdate
+		LEFT JOIN ',_db,'.sendout s1 ON s1.oldkptnno=c.kptnno 
+		WHERE 
+		s.kptnno LIKE ''%mlx%'' AND c.canceldetails=''Return to Sender''
+		and YEAR(c.cancelleddate)=',_year,' AND DATE_FORMAT(c.cancelleddate,''%d'')=',_date,' 
+		and s.operatorid=''',operatorid,''')x group by kptn
+		
+		');
+ELSEIF _usertype = "IAD" THEN #IAD USER
+	IF operatorid = "" THEN #NO SPECIFIC PARTNER - FOR SUMMARY REPORT
+		IF _branchcode<>"" AND _areacode<>"" AND _regioncode<>"" THEN # BY BRANCH
+		SET @n_query= CONCAT('
+		select 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(cancelleddate,''%Y-%m-%d %r'') AS cancelleddate,DATE_FORMAT(cancelleddate,''%r'') AS TIME,
+		if(Receiver_Phone is null,'''',Receiver_Phone) as Receiver_Phone,
+		if(operator is null,operatorid,operator) as Operator,currency,if(cancelreason is null,'''',cancelreason) as cancelreason,
+		branchcode,principal,if(charge is null,0,charge) as charge,adjprincipal,adjCharge,
+		socancelprincipal,socancelcharge,if(flag is null,'''',flag) as flag,if(branchname is null,'''',branchname) as branchname,
+		if(commission is null,0,commission) as commission,zonecode,operatorid,operatorid as partnername
+		from(
+		SELECT 
+		s.controlno,s.kptnno AS kptn,s.kptnno AS referenceno,
+		IF(SenderName IS NULL, CONCAT(s.SenderlName, '', '' ,s.SenderfName, '' '', s.SendermName),s.SenderName) AS sendername,
+		IF(receivername IS NULL, CONCAT(s.receiverlname, '', '' ,s.receiverfname, '' '', s.receivermname),s.receivername) AS receivername,
+		if(length(s.kptnno)=21,(DATE_FORMAT(CONCAT(SUBSTRING(s.kptnno,20,2),SUBSTRING(s.kptnno,18,2),SUBSTRING(s.kptnno,7,2)),''%Y-%m-%d'')),
+		if(LENGTH(s.kptnno)=20,(DATE_FORMAT(CONCAT(SUBSTRING(s.kptnno,19,2),SUBSTRING(s.kptnno,17,2),SUBSTRING(s.kptnno,7,2)),''%Y-%m-%d'')),
+		DATE_FORMAT(CONCAT(SUBSTRING(s.kptnno,17,6),SUBSTRING(s.kptnno,4,2)),''%Y-%m-%d''))) AS transdate,
+		s.claimeddate AS cancelleddate,DATE_FORMAT(s.claimeddate,''%r'') AS TIME,s.ReceiverContactNo AS Receiver_Phone,
+		IF((SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1) IS NULL,
+		(SELECT CONCAT(a2.lastname,'', '',a2.firstname,'' '',a2.middlename) AS fullname FROM `kpOFW`.`SubOFWaccounts` a2 WHERE a2.username=s.operatorid AND a2.isactive=1  AND a2.isagent=1 LIMIT 1),
+		(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1)
+		) AS Operator,s.currency,s.CancelledReason AS cancelreason,
+		IF(s.CancelledByBranchCode IS NOT NULL AND s.CancelledByBranchCode<>'''',s.CancelledByBranchCode,IF(s.isremote=1,s.remotebranch,s.branchcode)) AS branchcode,
+		s.principal,IF(s.ServiceCharge IS NULL,0,s.ServiceCharge) AS charge,
+		IF((SELECT p.cancelleddate FROM ',_db,'.`pocancel` p WHERE p.oldkptnno=s.kptnno LIMIT 1) IS NOT NULL,s.principal * -1,0) AS adjprincipal,
+		IF((SELECT p.cancelleddate FROM ',_db,'.`pocancel` p WHERE p.oldkptnno=s.kptnno LIMIT 1) IS NOT NULL,IF(s.ServiceCharge IS NULL,0,s.ServiceCharge) * -1,0) AS adjCharge,
+		s.principal AS socancelprincipal,IF(s.ServiceCharge IS NULL,0,s.ServiceCharge) AS socancelcharge,		
+		IF((SELECT p.cancelleddate FROM ',_db,'.`pocancel` p WHERE p.oldkptnno=s.kptnno LIMIT 1) IS NOT NULL,''**'','''') AS flag,
+		#IF(s.CancelledByBranchCode IS NOT NULL AND s.CancelledByBranchCode<>'''',s.CancelledByBranchCode,IF(s.isremote=1,s.remotebranch,s.branchcode)) AS branchname,
+		s.SOBranch AS branchname,
+(select if(cp.commission is null,0,cp.commission) from `kpOFWLogs`.`MLExpressPayouts` cp where cp.kptn=s.kptnno limit 1 ) as commission,		
+		if(s.isremote=1,s.RemoteZoneCode,s.zonecode) as zonecode,
+		IF((SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1) IS NULL,
+		(SELECT CONCAT(a2.lastname,'', '',a2.firstname,'' '',a2.middlename) AS fullname FROM `kpOFW`.`SubOFWaccounts` a2 WHERE a2.username=s.operatorid AND a2.isactive=1  AND a2.isagent=1 LIMIT 1),
+		(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1)
+		) AS partnername,s.operatorid		
+		FROM ',_db,'.`payout` s
+		WHERE 
+		s.kptnno LIKE ''%mlx%'' AND YEAR(s.claimeddate)=',_year,' AND DATE_FORMAT(s.claimeddate,''%d'')=',_date,' 
+		AND IF(IF(s.isremote=1,s.remotebranch,s.branchcode)=001 OR IF(s.isremote=1,s.remotebranch,s.branchcode)=002,s.branchcode,
+		IF(s.isremote=1,s.remotebranch,s.branchcode))=',_branchcode,'
+		AND (IF( IF(s.isremote=1,s.remotebranch,s.branchcode)=001 OR IF(s.isremote=1,s.remotebranch,s.branchcode)=002,s.zonecode,
+		IF(s.isremote=1,s.remotezonecode,s.zonecode))=',_zonecode,' 
+		or IF( IF(s.isremote=1,s.remotebranch,s.branchcode)=001 OR IF(s.isremote=1,s.remotebranch,s.branchcode)=002,s.zonecode,
+		IF(s.isremote=1,s.remotezonecode,s.zonecode))=',_oldzonecode,' )
+		
+		union all
+		
+		SELECT 
+		s.controlno,s.kptnno as kptn,s.kptnno as referenceno,
+		IF(s1.sendername IS NULL,s.sendername,s1.sendername) AS sendername,
+		IF(s1.receivername IS NULL,s.receivername,s1.receivername) AS receivername,
+		s.transdate,c.cancelleddate AS cancelleddate,DATE_FORMAT(s.transdate,''%r'') AS time,
+		s.ReceiverContactNo as Receiver_Phone,
+		IF((SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1) IS NULL,
+		(SELECT CONCAT(a2.lastname,'', '',a2.firstname,'' '',a2.middlename) AS fullname FROM `kpOFW`.`SubOFWaccounts` a2 WHERE a2.username=s.operatorid AND a2.isactive=1  AND a2.isagent=1 LIMIT 1),
+		(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1)
+		) AS Operator,s.Currency,c.canceldetails as cancelreason,
+		if(s.isremote=1,s.RemoteBranch,s.branchcode) as branchcode,s.principal,s.charge,
+		0 as adjprincipal,
+		0 as adjCharge,
+		s.principal as socancelprincipal,s.charge as socancelcharge,
+		if(c.canceldetails=''Return to Sender'',''*'','''') as flag,
+		s.SenderBranchID as branchname,
+		(select if(sologs.commission is null,0,sologs.commission) from `kpOFWLogs`.`MLExpressSendouts` sologs where sologs.kptn=s.kptnno limit 1) as commission,
+		if(s.isremote=1,s.RemoteZoneCode,s.zonecode) as zonecode,
+		IF((SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1) IS NULL,
+		(SELECT CONCAT(a2.lastname,'', '',a2.firstname,'' '',a2.middlename) AS fullname FROM `kpOFW`.`SubOFWaccounts` a2 WHERE a2.username=s.operatorid AND a2.isactive=1  AND a2.isagent=1 LIMIT 1),
+		(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1)
+		) AS partnername,s.operatorid
+		FROM ',_db,'.`sendout` s
+		LEFT JOIN ',_db,'.socancel c ON c.transdate=s.transdate
+		LEFT JOIN ',_db,'.sendout s1 ON s1.oldkptnno=c.kptnno 
+		WHERE 
+		s.kptnno LIKE ''%mlx%'' AND c.canceldetails=''Return to Sender''
+		and YEAR(c.cancelleddate)=',_year,' AND DATE_FORMAT(c.cancelleddate,''%d'')=',_date,' 
+		AND IF(IF(s.isremote=1,s.remotebranch,s.branchcode)=001 OR IF(s.isremote=1,s.remotebranch,s.branchcode)=002,s.branchcode,
+		IF(s.isremote=1,s.remotebranch,s.branchcode))=',_branchcode,'
+		AND (IF( IF(s.isremote=1,s.remotebranch,s.branchcode)=001 OR IF(s.isremote=1,s.remotebranch,s.branchcode)=002,s.zonecode,
+		IF(s.isremote=1,s.remotezonecode,s.zonecode))=',_zonecode,' 
+		or IF( IF(s.isremote=1,s.remotebranch,s.branchcode)=001 OR IF(s.isremote=1,s.remotebranch,s.branchcode)=002,s.zonecode,
+		IF(s.isremote=1,s.remotezonecode,s.zonecode))=',_oldzonecode,' )
+		)x group by kptn
+		');
+		END IF;
+	ELSEIF operatorid <> "" THEN #WITH SPECIFIC PARTNER 
+		IF _branchcode<>"" AND _areacode<>"" AND _regioncode<>"" THEN #BY BRANCH
+		SET @n_query= CONCAT('
+		select 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(cancelleddate,''%Y-%m-%d %r'') AS cancelleddate,DATE_FORMAT(cancelleddate,''%r'') AS TIME,
+		if(Receiver_Phone is null,'''',Receiver_Phone) as Receiver_Phone,
+		if(operator is null,operatorid,operator) as Operator,currency,if(cancelreason is null,'''',cancelreason) as cancelreason,
+		branchcode,principal,if(charge is null,0,charge) as charge,adjprincipal,adjCharge,
+		socancelprincipal,socancelcharge,if(flag is null,'''',flag) as flag,if(branchname is null,'''',branchname) as branchname,
+		if(commission is null,0,commission) as commission,zonecode,operatorid,operatorid as partnername
+		from(
+		SELECT 
+		s.controlno,s.kptnno AS kptn,s.kptnno AS referenceno,
+		IF(SenderName IS NULL, CONCAT(s.SenderlName, '', '' ,s.SenderfName, '' '', s.SendermName),s.SenderName) AS sendername,
+		IF(receivername IS NULL, CONCAT(s.receiverlname, '', '' ,s.receiverfname, '' '', s.receivermname),s.receivername) AS receivername,
+		if(length(s.kptnno)=21,(DATE_FORMAT(CONCAT(SUBSTRING(s.kptnno,20,2),SUBSTRING(s.kptnno,18,2),SUBSTRING(s.kptnno,7,2)),''%Y-%m-%d'')),
+		if(LENGTH(s.kptnno)=20,(DATE_FORMAT(CONCAT(SUBSTRING(s.kptnno,19,2),SUBSTRING(s.kptnno,17,2),SUBSTRING(s.kptnno,7,2)),''%Y-%m-%d'')),
+		DATE_FORMAT(CONCAT(SUBSTRING(s.kptnno,17,6),SUBSTRING(s.kptnno,4,2)),''%Y-%m-%d''))) AS transdate,
+		s.claimeddate AS cancelleddate,DATE_FORMAT(s.claimeddate,''%r'') AS TIME,s.ReceiverContactNo AS Receiver_Phone,
+		IF((SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1) IS NULL,
+		(SELECT CONCAT(a2.lastname,'', '',a2.firstname,'' '',a2.middlename) AS fullname FROM `kpOFW`.`SubOFWaccounts` a2 WHERE a2.username=s.operatorid AND a2.isactive=1  AND a2.isagent=1 LIMIT 1),
+		(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1)
+		) AS Operator,s.currency,s.CancelledReason AS cancelreason,
+		IF(s.CancelledByBranchCode IS NOT NULL AND s.CancelledByBranchCode<>'''',s.CancelledByBranchCode,IF(s.isremote=1,s.remotebranch,s.branchcode)) AS branchcode,
+		s.principal,IF(s.ServiceCharge IS NULL,0,s.ServiceCharge) AS charge,
+		IF((SELECT p.cancelleddate FROM ',_db,'.`pocancel` p WHERE p.oldkptnno=s.kptnno LIMIT 1) IS NOT NULL,s.principal * -1,0) AS adjprincipal,
+		IF((SELECT p.cancelleddate FROM ',_db,'.`pocancel` p WHERE p.oldkptnno=s.kptnno LIMIT 1) IS NOT NULL,IF(s.ServiceCharge IS NULL,0,s.ServiceCharge) * -1,0) AS adjCharge,
+		s.principal AS socancelprincipal,IF(s.ServiceCharge IS NULL,0,s.ServiceCharge) AS socancelcharge,		
+		IF((SELECT p.cancelleddate FROM ',_db,'.`pocancel` p WHERE p.oldkptnno=s.kptnno LIMIT 1) IS NOT NULL,''**'','''') AS flag,
+		#IF(s.CancelledByBranchCode IS NOT NULL AND s.CancelledByBranchCode<>'''',s.CancelledByBranchCode,IF(s.isremote=1,s.remotebranch,s.branchcode)) AS branchname,
+		s.SOBranch AS branchname,
+(select if(cp.commission is null,0,cp.commission) from `kpOFWLogs`.`MLExpressPayouts` cp where cp.kptn=s.kptnno limit 1 ) as commission,		
+		if(s.isremote=1,s.RemoteZoneCode,s.zonecode) as zonecode,s.operatorid,'''' as partnername		
+		FROM ',_db,'.`payout` s
+		WHERE 
+		s.kptnno LIKE ''%mlx%'' AND YEAR(s.claimeddate)=',_year,' AND DATE_FORMAT(s.claimeddate,''%d'')=',_date,' 
+		AND IF(IF(s.isremote=1,s.remotebranch,s.branchcode)=001 OR IF(s.isremote=1,s.remotebranch,s.branchcode)=002,s.branchcode,
+		IF(s.isremote=1,s.remotebranch,s.branchcode))=',_branchcode,'
+		AND (IF( IF(s.isremote=1,s.remotebranch,s.branchcode)=001 OR IF(s.isremote=1,s.remotebranch,s.branchcode)=002,s.zonecode,
+		IF(s.isremote=1,s.remotezonecode,s.zonecode))=',_zonecode,' 
+		or IF( IF(s.isremote=1,s.remotebranch,s.branchcode)=001 OR IF(s.isremote=1,s.remotebranch,s.branchcode)=002,s.zonecode,
+		IF(s.isremote=1,s.remotezonecode,s.zonecode))=',_oldzonecode,' )
+		AND s.operatorid=''',operatorid,'''
+		
+		union all
+		
+		SELECT 
+		s.controlno,s.kptnno as kptn,s.kptnno as referenceno,
+		IF(s1.sendername IS NULL,s.sendername,s1.sendername) AS sendername,
+		IF(s1.receivername IS NULL,s.receivername,s1.receivername) AS receivername,
+		s.transdate,c.cancelleddate AS cancelleddate,DATE_FORMAT(s.transdate,''%r'') AS time,
+		s.ReceiverContactNo as Receiver_Phone,
+		IF((SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1) IS NULL,
+		(SELECT CONCAT(a2.lastname,'', '',a2.firstname,'' '',a2.middlename) AS fullname FROM `kpOFW`.`SubOFWaccounts` a2 WHERE a2.username=s.operatorid AND a2.isactive=1  AND a2.isagent=1 LIMIT 1),
+		(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1)
+		) AS Operator,s.Currency,c.canceldetails as cancelreason,
+		if(s.isremote=1,s.RemoteBranch,s.branchcode) as branchcode,s.principal,s.charge,
+		0 as adjprincipal,
+		0 as adjCharge,
+		s.principal as socancelprincipal,s.charge as socancelcharge,
+		if(c.canceldetails=''Return to Sender'',''*'','''') as flag,
+		s.SenderBranchID as branchname,
+		(select if(sologs.commission is null,0,sologs.commission) from `kpOFWLogs`.`MLExpressSendouts` sologs where sologs.kptn=s.kptnno limit 1) as commission,
+		if(s.isremote=1,s.RemoteZoneCode,s.zonecode) as zonecode,s.operatorid,'''' as partnername
+		FROM ',_db,'.`sendout` s
+		LEFT JOIN ',_db,'.socancel c ON c.transdate=s.transdate
+		LEFT JOIN ',_db,'.sendout s1 ON s1.oldkptnno=c.kptnno 
+		WHERE 
+		s.kptnno LIKE ''%mlx%'' AND c.canceldetails=''Return to Sender''
+		and YEAR(c.cancelleddate)=',_year,' AND DATE_FORMAT(c.cancelleddate,''%d'')=',_date,' 
+		AND IF(IF(s.isremote=1,s.remotebranch,s.branchcode)=001 OR IF(s.isremote=1,s.remotebranch,s.branchcode)=002,s.branchcode,
+		IF(s.isremote=1,s.remotebranch,s.branchcode))=',_branchcode,'
+		AND (IF( IF(s.isremote=1,s.remotebranch,s.branchcode)=001 OR IF(s.isremote=1,s.remotebranch,s.branchcode)=002,s.zonecode,
+		IF(s.isremote=1,s.remotezonecode,s.zonecode))=',_zonecode,' 
+		or IF( IF(s.isremote=1,s.remotebranch,s.branchcode)=001 OR IF(s.isremote=1,s.remotebranch,s.branchcode)=002,s.zonecode,
+		IF(s.isremote=1,s.remotezonecode,s.zonecode))=',_oldzonecode,' )
+		and s.operatorid=''',operatorid,''')x group by kptn
+		');
+		END IF;
+	END IF;	
+END IF;
+	
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

@@ -1,0 +1,64 @@
+DELIMITER $$
+
+USE `kpbillspayment`$$
+
+DROP PROCEDURE IF EXISTS `HOgetdailysendoutBP`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetdailysendoutBP`(IN _tblname VARCHAR(4),IN _accountid VARCHAR(15),IN _year VARCHAR(5))
+BEGIN
+SET @SQLStmt = CONCAT('select DISTINCT kptn,if(flag is null,'''',flag) as flag,
+if(cancelleddate is null,''0000-00-00 00:00:00'',cancelleddate) as cancelleddate,
+if(cancelreason is null,'''',cancelreason) as cancelreason,controlno,sendername,
+if(transdate is null,''0000-00-00 00:00:00'',transdate) as transdate,TIME,sodate,receivername,
+oldkptnno,Receiver_Phone,referenceno ,Currency,principal,charge,socancelprincipal ,
+socancelcharge,adjprincipal,adjcharge,branchcode,if(Operator is null,Operatorid,Operator) as Operator,commission,operatorid,zonecode,partnername from (
+(SELECT 
+DISTINCT kptnno AS kptn,IF(s.cancelreason IS NOT NULL,IF(s.cancelreason=''CHANGE DETAILS'',''***'',
+IF(s.cancelreason in (''CANCEL'',''SOCANCEL''),''**'',IF(s.cancelreason=''RETURN TO SENDER'',
+IF(DATE(s.transdate)<>DATE(s.cancelleddate),'''',''*''),''''))),
+IF( s.cancelreason IS NULL AND oldkptnno IS NOT NULL,''****'','''')
+) AS flag,
+			IF(s.cancelleddate IS NULL OR s.cancelleddate='''' OR s.cancelleddate=''0000-00-00 00:00:00'',NULL,s.cancelleddate) AS cancelleddate,
+IF(  s.cancelreason IS NULL AND oldkptnno IS NOT NULL,''newkptnno'',if(s.cancelreason in (''CANCEL'',''SOCANCEL''),''CANCEL'',s.cancelreason)) AS cancelreason,
+			s.controlno,
+			(CONCAT(PayorFName,  '' '',PayorMName, '' '',PayorLName)) AS sendername,
+			s.transdate,DATE_FORMAT(s.transdate,''%H:%i:%S'') AS TIME,
+			CONCAT(',_year,',''-'',SUBSTRING(s.oldkptnno,16,2),''-'',SUBSTRING(s.oldkptnno,8,2)) AS sodate,
+			(CONCAT(AccountFName, '' '',AccountMName, '' '',AccountLName)) AS receivername,
+			s.oldkptnno,payorcontactno AS Receiver_Phone,kptnno AS referenceno ,s.Currency,
+amountpaid as principal,(customercharge+partnercharge) as charge,
+			IF(s.cancelreason in (''CANCEL'',''SOCANCEL''),IF(DATE_FORMAT(s.cancelleddate,''%m%d'')=',_tblname,' AND DATE(s.transdate)<>DATE(s.cancelleddate),0,amountpaid),amountpaid) AS socancelprincipal ,
+			IF(s.cancelreason in (''CANCEL'',''SOCANCEL''),IF(DATE_FORMAT(s.cancelleddate,''%m%d'')=',_tblname,' AND DATE(s.transdate)<>DATE(s.cancelleddate),0,(customercharge+partnercharge)),(customercharge+partnercharge)) AS socancelcharge,
+IF(  (s.cancelreason IN (''CHANGE DETAILS'',''CANCEL'',''SOCANCEL'')AND DATE(s.transdate)=DATE(s.cancelleddate)),amountpaid * -1,0) AS adjprincipal,
+IF(  (s.cancelreason IN (''CHANGE DETAILS'',''CANCEL'',''SOCANCEL'')AND DATE(s.transdate)=DATE(s.cancelleddate)),(customercharge+partnercharge) * -1,0) AS adjcharge, s.branchcode,
+(
+IF (
+(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu WHERE pu.userid=s.operatorid LIMIT 1) IS NULL,
+IF( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss	INNER  JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=s.operatorid LIMIT 1) IS NULL,
+    (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss INNER JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=s.operatorid LIMIT 1),
+    (SELECT bu.fullname FROM kpusers.sysuseraccounts ss	INNER JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=s.operatorid LIMIT 1)),
+(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu WHERE pu.userid=s.operatorid LIMIT 1)
+)    
+) AS Operator,
+if(socom.commission is null,0,socom.commission) as commission,
+#0 AS commission,
+s.operatorid,zonecode,ac.accountname AS partnername
+FROM kpbillspayment.sendout',_tblname,' s 
+#INNER JOIN kppartnerstransactions.corporatesendouts so ON so.kptn=s.kptnno
+#INNER JOIN kppartners.sotxnref sf ON sf.accountcode=so.accountid AND sf.referenceno=so.referenceno
+inner JOIN `kpMLExpressLogs`.`SendoutCommission` socom on socom.accountid=s.companyid and socom.kptn=s.kptnno and socom.isactive=1
+INNER JOIN `kpadminpartners`.`accountlist` ac ON ac.accountid = s.companyid
+WHERE YEAR(s.transdate)=',_year,' 
+AND operatorid=''',_accountid,'''
+ AND kptnno LIKE ''%bpx%''
+AND (DATE(s.transdate)=DATE(s.cancelleddate) OR s.cancelleddate IS NULL OR s.cancelleddate=''0000-00-00 00:00:00'' OR s.cancelleddate='''' 
+OR IF(s.cancelreason=''CHANGE DETAILS'',DATE(s.transdate)<>DATE(s.cancelleddate),
+IF(s.cancelreason in (''CANCEL'',''SOCANCEL''),IF(DATE(s.transdate)<>DATE(s.cancelleddate),DATE_FORMAT(s.transdate,''%m%d'')=',_tblname,',1),0))) GROUP BY s.kptnno)
+)x group by kptn;
+');
+PREPARE Stmt FROM @SQLStmt;
+EXECUTE Stmt;
+DEALLOCATE PREPARE Stmt;
+END$$
+
+DELIMITER ;

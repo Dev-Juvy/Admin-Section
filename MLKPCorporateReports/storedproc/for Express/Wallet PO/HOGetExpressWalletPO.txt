@@ -1,0 +1,106 @@
+DELIMITER $$
+
+USE `kpOFW`$$
+
+DROP PROCEDURE IF EXISTS `HOGetExpressWalletPO`$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `HOGetExpressWalletPO`(IN _datefrom VARCHAR(15),IN _dateto VARCHAR(15) )
+BEGIN
+
+
+DECLARE _date VARCHAR(3);
+DECLARE _year VARCHAR(4);
+DECLARE _monthyr VARCHAR(30);
+
+DROP  TEMPORARY  TABLE IF EXISTS kpOFW.tmpwalletpo;
+CREATE  TEMPORARY  TABLE kpOFW.tmpwalletpo(controlno VARCHAR(100), kptn VARCHAR(100), referenceno VARCHAR(100), sendername VARCHAR(100), receivername VARCHAR(100),  transdate VARCHAR(100), 
+		 cancelleddate VARCHAR(100),  TIME VARCHAR(100),  Receiver_Phone VARCHAR(100),  Operator VARCHAR(100), currency VARCHAR(100),  cancelreason VARCHAR(100), 
+		branchcode VARCHAR(100), principal VARCHAR(100),  charge VARCHAR(100), adjprincipal VARCHAR(100), adjCharge VARCHAR(100), 
+		socancelprincipal VARCHAR(100), socancelcharge VARCHAR(100),  flag VARCHAR(100),  branchname VARCHAR(100),  
+		commission VARCHAR(100), zonecode VARCHAR(100), operatorid VARCHAR(100),  partnername VARCHAR(100));
+		
+WHILE DATE(_datefrom) <= DATE(_dateto) DO
+SET _monthyr = DATE_FORMAT(_datefrom,'%m%Y'); 
+SET _date = DATE_FORMAT(_datefrom,'%d'); 
+SET _year = DATE_FORMAT(_datefrom,'%Y'); 
+
+
+SET @n_query= CONCAT('insert  into kpOFW.tmpwalletpo( controlno  , kptn  , referenceno  , sendername  , receivername  ,  transdate  , 
+		 cancelleddate  ,  TIME  ,  Receiver_Phone  ,  Operator  , currency  ,  cancelreason  , 
+		branchcode  , principal  ,  charge  , adjprincipal  , adjCharge  , 
+		socancelprincipal  , socancelcharge  ,  flag  ,  branchname  ,  
+		commission  , zonecode  , operatorid  ,  partnername ) '
+		'select 
+		controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+		DATE_FORMAT(cancelleddate,''%Y-%m-%d %r'') AS cancelleddate,DATE_FORMAT(cancelleddate,''%r'') AS TIME,
+		if(Receiver_Phone is null,'''',Receiver_Phone) as Receiver_Phone,
+		operatorid as Operator,currency,if(cancelreason is null,'''',cancelreason) as cancelreason,
+		branchcode,principal,if(charge is null,0,charge) as charge,adjprincipal,adjCharge,
+		socancelprincipal,socancelcharge,if(flag is null,'''',flag) as flag,if(branchname is null,'''',branchname) as branchname,
+		if(commission is null,0,commission) as commission,zonecode,operatorid,operatorid as partnername
+		from(
+		SELECT 
+		s.controlno,s.kptnno AS kptn,s.kptnno AS referenceno,
+		IF(s.SenderName IS NULL, CONCAT(s.SenderlName, '', '' ,s.SenderfName, '' '', s.SendermName),s.SenderName) AS sendername,
+		IF(s.receivername IS NULL, CONCAT(s.receiverlname, '', '' ,s.receiverfname, '' '', s.receivermname),s.receivername) AS receivername,
+		if(length(s.kptnno)=21,(DATE_FORMAT(CONCAT(SUBSTRING(s.kptnno,20,2),SUBSTRING(s.kptnno,18,2),SUBSTRING(s.kptnno,7,2)),''%Y-%m-%d'')),
+		if(LENGTH(s.kptnno)=20,(DATE_FORMAT(CONCAT(SUBSTRING(s.kptnno,19,2),SUBSTRING(s.kptnno,17,2),SUBSTRING(s.kptnno,7,2)),''%Y-%m-%d'')),
+		DATE_FORMAT(CONCAT(SUBSTRING(s.kptnno,17,6),SUBSTRING(s.kptnno,4,2)),''%Y-%m-%d''))) AS transdate,
+		s.claimeddate AS cancelleddate,DATE_FORMAT(s.claimeddate,''%r'') AS TIME,s.ReceiverContactNo AS Receiver_Phone,
+		 s.currency,s.CancelledReason AS cancelreason,
+		IF(s.CancelledByBranchCode IS NOT NULL AND s.CancelledByBranchCode<>'''',s.CancelledByBranchCode,IF(s.isremote=1,s.remotebranch,s.branchcode)) AS branchcode,
+		s.principal,IF(s.ServiceCharge IS NULL,0,s.ServiceCharge) AS charge,
+		IF((SELECT p.cancelleddate FROM Reports',_monthyr,'.`pocancel` p WHERE p.oldkptnno=s.kptnno LIMIT 1) IS NOT NULL,s.principal * -1,0) AS adjprincipal,
+		IF((SELECT p.cancelleddate FROM Reports',_monthyr,'.`pocancel` p WHERE p.oldkptnno=s.kptnno LIMIT 1) IS NOT NULL,IF(s.ServiceCharge IS NULL,0,s.ServiceCharge) * -1,0) AS adjCharge,
+		s.principal AS socancelprincipal,IF(s.ServiceCharge IS NULL,0,s.ServiceCharge) AS socancelcharge,		
+		IF((SELECT p.cancelleddate FROM Reports',_monthyr,'.`pocancel` p WHERE p.oldkptnno=s.kptnno LIMIT 1) IS NOT NULL,''**'','''') AS flag,
+		#IF(s.CancelledByBranchCode IS NOT NULL AND s.CancelledByBranchCode<>'''',s.CancelledByBranchCode,IF(s.isremote=1,s.remotebranch,s.branchcode)) AS branchname,
+		s.SOBranch AS branchname,0 as commission,		
+		if(s.isremote=1,s.RemoteZoneCode,s.zonecode) as zonecode,s.operatorid,'''' as partnername		
+		FROM Reports',_monthyr,'.`payout` s
+		WHERE 
+		s.kptnno LIKE ''%mlx%'' and controlno like ''%mp%'' AND YEAR(s.claimeddate)=',_year,' 
+		AND DATE_FORMAT(s.claimeddate,''%d'')=',_date,'  
+		
+		union all
+		
+		SELECT 
+		s.controlno,s.kptnno as kptn,s.kptnno as referenceno,
+		IF(s1.sendername IS NULL,s.sendername,s1.sendername) AS sendername,
+		IF(s1.receivername IS NULL,s.receivername,s1.receivername) AS receivername,
+		s.transdate,c.cancelleddate AS cancelleddate,DATE_FORMAT(s.transdate,''%r'') AS time,
+		s.ReceiverContactNo as Receiver_Phone,
+		s.Currency,c.canceldetails as cancelreason,
+		if(s.isremote=1,s.RemoteBranch,s.branchcode) as branchcode,s.principal,s.charge,
+		0 as adjprincipal,
+		0 as adjCharge,
+		s.principal as socancelprincipal,s.charge as socancelcharge,
+		if(c.canceldetails=''Return to Sender'',''*'','''') as flag,
+		s.SenderBranchID as branchname,0 as commission,
+		if(s.isremote=1,s.RemoteZoneCode,s.zonecode) as zonecode,s.operatorid,'''' as partnername
+		FROM Reports',_monthyr,'.`sendout` s
+		LEFT JOIN Reports',_monthyr,'.socancel c ON c.transdate=s.transdate
+		LEFT JOIN Reports',_monthyr,'.sendout s1 ON s1.oldkptnno=c.kptnno 
+		WHERE 
+		s.kptnno LIKE ''%mlx%'' and s.controlno like ''%mp%''  AND c.canceldetails=''Return to Sender''
+		and YEAR(c.cancelleddate)=',_year,' 
+		AND DATE_FORMAT(c.cancelleddate,''%d'')=',_date,'  )x group by kptn
+		
+		');
+	
+SET _datefrom = DATE_ADD(_datefrom, INTERVAL 1 DAY);                 
+PREPARE StrSQL FROM @n_query;
+EXECUTE StrSQL;
+END WHILE;
+
+SET @sql3=CONCAT('select controlno  , kptn  , referenceno  , sendername  , receivername  ,  transdate  , 
+		 cancelleddate  ,  TIME  ,  Receiver_Phone  ,  Operator  , currency  ,  cancelreason  , 
+		branchcode  , principal  ,  charge  , adjprincipal  , adjCharge  , 
+		socancelprincipal  , socancelcharge  ,  flag  ,  branchname  ,  
+		commission  , zonecode  , operatorid  ,  partnername 
+from kpOFW.tmpwalletpo ; ');
+PREPARE gtpo3 FROM @sql3;
+EXECUTE gtpo3;
+END$$
+
+DELIMITER ;

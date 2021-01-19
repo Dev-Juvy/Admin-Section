@@ -1,0 +1,39 @@
+DELIMITER $$
+
+USE `kpORNO`$$
+
+DROP PROCEDURE IF EXISTS `HOgetTransLogs`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetTransLogs`(IN accountCode VARCHAR(30),IN _datefrom VARCHAR(15),IN _dateto VARCHAR(15))
+BEGIN
+DECLARE _monthdate VARCHAR(4);
+DECLARE _year VARCHAR(4);
+DROP  TEMPORARY  TABLE IF EXISTS kpORNO.txnlogs;
+CREATE  TEMPORARY TABLE kpORNO.txnlogs(transdate VARCHAR(50),operator VARCHAR(100),referenceno VARCHAR(100),transtype VARCHAR(100),
+amount VARCHAR(100),charge VARCHAR(100),terminalid VARCHAR(100),tin VARCHAR(100));
+WHILE DATE(_datefrom) <= DATE(_dateto) DO
+SET _monthdate = DATE_FORMAT(_datefrom,'%m%d');
+SET _year = DATE_FORMAT(_datefrom,'%Y');
+SET @n_query= CONCAT('insert into kpORNO.txnlogs(transdate,operator ,referenceno ,transtype ,amount ,charge ,terminalid,tin )'
+'SELECT datecreated AS transdate,CONCAT(b.firstname,'' '',b.middlename,'' '',b.lastname) AS operator,a.refno AS referenceno,''Sendout'' AS transtype,
+s.principal AS amount,s.charge,a.terminalid,concat(d.tin,''-'',e.locationcode) AS tin
+FROM `kpORNO`.`orDetails` a 
+INNER JOIN  kppartners.sendout',_monthdate,' s on a.accountid=s.accountcode and a.refno=s.referenceno
+INNER JOIN  `kpadminpartners`.`wssubpartnersusers` b ON b.userid=a.syscreator
+INNER JOIN kppartners.sotxnref sf ON sf.accountcode=a.accountid AND sf.referenceno=a.refno
+#INNER JOIN `kpadminpartners`.`ws_Sublocation` c ON c.subaccountid=a.accountid AND c.sublocationid=a.locationid
+inner join kpadminpartners.accountdetail d on d.accountid=a.accountid
+inner join kpadminpartners.accountlist e on e.accountid=a.accountid
+WHERE a.accountid=''',accountCode,''' and date(a.datecreated)=date(''',_datefrom,''') AND sf.transactiontype IN (''3'')
+ORDER BY a.datecreated ASC;
+');													
+SET _datefrom = DATE_ADD(_datefrom, INTERVAL 1 DAY);                
+PREPARE StrSQL FROM @n_query;
+EXECUTE StrSQL;
+END WHILE;
+SET @sql3=CONCAT('select transdate,operator ,referenceno ,transtype ,amount ,charge ,terminalid,tin from kpORNO.txnlogs order by transdate asc; ');
+PREPARE gtpo3 FROM @sql3;
+EXECUTE gtpo3;
+END$$
+
+DELIMITER ;

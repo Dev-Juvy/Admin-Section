@@ -1,0 +1,24 @@
+DELIMITER $$
+
+USE `kpmobile`$$
+
+DROP PROCEDURE IF EXISTS `GetCustomerlist`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `GetCustomerlist`(IN _walletno VARCHAR(100),IN _datefrom VARCHAR(15),IN _dateto VARCHAR(15))
+BEGIN
+DECLARE _dt VARCHAR(20);
+SET _dt = DATE_ADD(_dateto, INTERVAL 1 DAY);
+	SET @query= CONCAT(' select custid,walletno,lastname,firstname,middlename,gender,birthdate,permanentaddress,provincecity,
+	country,zipcode,mobileno,emailaddress,natureofwork,nationality ,txndate from (
+	SELECT custid,m.walletno,lastname,firstname,middlename,gender,birthdate,permanentaddress,provincecity,
+	country,zipcode,mobileno,emailaddress,natureofwork,nationality ,txndate
+	FROM kpmobile.mobileaccounts m
+	INNER JOIN ',_walletno,' w ON m.walletno=w.walletno
+	WHERE transtype=4 AND m.isactive = 1  ORDER BY txndate ASC LIMIT 1 )x where txndate between date(''',_datefrom,''') and date(''',_dt,''')
+	;');
+	PREPARE StrSQL FROM @query;
+	EXECUTE StrSQL;
+	DEALLOCATE PREPARE StrSQL;
+ END$$
+
+DELIMITER ;

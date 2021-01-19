@@ -1,0 +1,20 @@
+DELIMITER $$
+
+USE `kpORNO`$$
+
+DROP PROCEDURE IF EXISTS `HOgetWSCTransLogs`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetWSCTransLogs`(IN accountCode VARCHAR(30),IN _datefrom VARCHAR(15),IN _dateto VARCHAR(15))
+BEGIN
+SET @sql3= CONCAT('SELECT txndate AS ''DATE/TIME'',operatorid AS ''Username'', stationno AS ''Terminal/Station ID'',
+TYPE AS ''Module NAME'',ACTION AS ''Activity'',b.refno AS ''Transaction ID'',b.orno as ''AR#'',a.principal AS ''VALUES''
+FROM `kpadminpartnerslog`.`transactionslogs` a
+inner join `kpORNO`.`orDetails` b on b.refno=a.refno
+WHERE accountcode=''',accountCode,''' AND DATE(txndate) BETWEEN DATE(''',_datefrom,''') AND DATE(''',_dateto,''') 
+ORDER BY b.refno ASC,txndate DESC;
+');
+PREPARE gtpo3 FROM @sql3;
+EXECUTE gtpo3;
+END$$
+
+DELIMITER ;

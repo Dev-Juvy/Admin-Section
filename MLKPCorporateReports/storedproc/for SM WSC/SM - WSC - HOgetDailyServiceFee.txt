@@ -1,0 +1,31 @@
+DELIMITER $$
+
+USE `kppartners`$$
+
+DROP PROCEDURE IF EXISTS `HOgetDailyServiceFee`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetDailyServiceFee`(IN _date VARCHAR(15),IN accountCode VARCHAR(35),IN _username VARCHAR(50),IN _role VARCHAR(50),IN _terminalid VARCHAR(50),IN _locationid VARCHAR(50))
+BEGIN
+	DECLARE _monthdate VARCHAR(4);
+	DECLARE _year VARCHAR(4);
+	
+	SET _monthdate = DATE_FORMAT(_date,'%m%d');
+	SET _year = DATE_FORMAT(_date,'%Y');
+	
+	SET @n_query= CONCAT(' select  wsl.sublocationTIN as branchtin,s.transdate,or1.orno,s.sendername,or1.transtin,or1.vatableamount as vatservicefee,0 as zeroservicefee,
+	0 as vatexcemptservicefee,(or1.vatableamount*0.12) as vat,s.charge,0 as accservicefee,reprint as reprintcount,if(s.cancelreason=''Cancel'',''VOIDED'','''') as remarks
+	FROM kppartners.sendout',_monthdate,' s 
+	INNER JOIN kppartners.sotxnref sf ON sf.accountcode=s.accountcode AND sf.referenceno=s.referenceno
+	INNER JOIN kpORNO.orDetails or1 on or1.accountid=s.accountcode and or1.refno=s.referenceno
+	INNER JOIN `kpadminpartners`.`ws_Sublocation` wsl on  wsl.isactive=1 and wsl.sublocationid=or1.locationid
+	WHERE s.accountcode=''',accountCode,''' and year(s.transdate)=',_year,' AND sf.transactiontype IN (''3'')
+	AND IF (''',_role,''' = ''KP-PARTNERTELLER'',s.operatorid = ''',_username,''', #and or1.terminalid=''',_terminalid,''',
+	#IF (''',_role,''' = ''KP-SUPERVISOR'',s.operatorid = ''',_username,''' and or1.locationid=''',_locationid,''',1))
+	IF (''',_role,''' = ''KP-SUPERVISOR'', or1.locationid=''',_locationid,''',1))
+	');
+	PREPARE StrSQL FROM @n_query;
+	EXECUTE StrSQL;             
+	
+    END$$
+
+DELIMITER ;

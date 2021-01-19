@@ -1,0 +1,159 @@
+
+
+USE `kpusers`;
+
+/* Procedure structure for procedure `accesslogs` */
+
+DROP PROCEDURE IF EXISTS  `accesslogs` ;
+
+DELIMITER $$
+
+CREATE  PROCEDURE `accesslogs`(IN res_id VARCHAR (50),IN rep_name VARCHAR (100),IN FLAG VARCHAR(5))
+BEGIN
+	IF(FLAG='1') THEN
+		INSERT INTO kpusers.reportaccesslogs (resourceid,reportname,logintime,logouttime,lastpasswordchanged,syscreated) VALUES (res_id,rep_name,DATE_FORMAT(NOW(),'%Y-%m-%d %l:%i:%s'),'','',DATE_FORMAT(NOW(),'%Y-%m-%d %l:%i:%s'));
+	ELSEIF (FLAG='2') THEN
+		INSERT INTO kpusers.reportaccesslogs (resourceid,reportname,logintime,logouttime,lastpasswordchanged,syscreated) VALUES (res_id,rep_name,'',DATE_FORMAT(NOW(),'%Y-%m-%d %l:%i:%s'),'',DATE_FORMAT(NOW(),'%Y-%m-%d %l:%i:%s'));
+	ELSEIF (FLAG='3') THEN
+		INSERT INTO kpusers.reportaccesslogs (resourceid,reportname,logintime,logouttime,lastpasswordchanged,syscreated) VALUES (res_id,rep_name,'','',DATE_FORMAT(NOW(),'%Y-%m-%d %l:%i:%s'),DATE_FORMAT(NOW(),'%Y-%m-%d %l:%i:%s'));
+	
+      END IF;
+END $$
+DELIMITER ;
+
+/* Procedure structure for procedure `getlogin` */
+
+DROP PROCEDURE IF EXISTS  `getlogin` ;
+
+DELIMITER $$
+
+CREATE  PROCEDURE `getlogin`(IN _UserLogin VARCHAR(25),IN _type VARCHAR(1))
+BEGIN
+DECLARE _role VARCHAR(50);
+SET _role = (SELECT * FROM (
+SELECT roleid FROM kpusers.sysuseraccounts WHERE userlogin= _UserLogin 
+UNION
+SELECT roleid FROM kpusers.adminsysuseraccounts WHERE userlogin= _UserLogin )X LIMIT 1);
+   
+   
+   #kung wala siya role kai bag o siya na insert sa helpdesk
+   IF _role IN ('KP-IAD','KP-WebReports','KP-FSD','CAD','KP-FD','KP-CAD','KP-RAM','KP-SECCOMLNCR','KP-SECCOM','KP-SECCOMVISMIN','CAD-DIVMAN') THEN
+	#depende asa siya ge login....
+	IF _type='P' THEN
+		SELECT * FROM (
+		SELECT DISTINCT br.regionname AS Region,IF(br.regioncode IS NULL OR br.regioncode='',1,br.regioncode) AS regioncode,br.areacode, NOW() AS myr, s.UserLogin AS Username, s.UserPassword AS UserPass, s.roleid AS jobRole, s.DivCode AS DivisionCode, s.ResourceID AS ResourceID, 
+		s.Zonecode AS ZoneCode, b.Fullname AS Fullname, s.Roleid AS role, 1 AS Admin,IF(ispartner=1 OR s.Roleid='CAD-DIVMAN',1,0) AS allow,'CU' AS `type`,b.firstname,b.lastname
+		FROM adminsysuseraccounts s INNER JOIN adminbranchusers b ON s.branchcode=b.branchcode AND s.ResourceID=b.ResourceID AND s.Zonecode = b.Zonecode 
+		INNER JOIN branches br ON s.branchcode=br.branchcode AND s.zonecode=br.zonecode 
+		WHERE (s.Roleid='KP-IAD' OR s.Roleid='KP-WebReports' OR s.Roleid='KP-FSD' OR s.Roleid='KP-SECCOMLNCR' OR s.Roleid='KP-SECCOM' OR s.Roleid='KP-SECCOMVISMIN' 
+		OR s.Roleid='CAD' OR s.Roleid='KP-FD' OR s.Roleid='KP-CAD' OR s.Roleid='CAD-DIVMAN')  
+		AND s.UserLogin= _UserLogin AND s.IsActive = 1 AND IsResign=0
+		UNION 
+		SELECT DISTINCT br.regionname AS Region,IF(br.regioncode IS NULL OR br.regioncode='',1,br.regioncode) AS regioncode,br.areacode, NOW() AS myr, s.UserLogin AS Username, s.UserPassword AS UserPass, s.roleid AS jobRole, s.DivCode AS DivisionCode, s.ResourceID AS ResourceID, 
+		s.Zonecode AS ZoneCode, b.Fullname AS Fullname, s.Roleid AS role, 1 AS Admin,1 AS allow,'FA' AS `type`,b.firstname,b.lastname
+		FROM sysuseraccounts s INNER JOIN branchusers b ON s.branchcode=b.branchcode AND s.ResourceID=b.ResourceID AND s.Zonecode = b.Zonecode 
+		INNER JOIN branches br ON s.branchcode=br.branchcode AND s.zonecode=br.zonecode 
+		WHERE (s.Roleid='KP-IAD' OR s.roleid='KP-RAM') AND s.UserLogin= _UserLogin AND s.IsActive = 1 AND IsResign=0) X  LIMIT 1;
+	
+	ELSEIF _type='G' THEN
+	
+		SELECT DISTINCT br.regionname AS Region,br.regioncode, NOW() AS myr, s.UserLogin AS Username, s.UserPassword AS UserPass, s.roleid AS jobRole, s.DivCode AS DivisionCode, s.ResourceID AS ResourceID, 
+		s.Zonecode AS ZoneCode, b.Fullname AS Fullname, s.Roleid AS role, 1 AS Admin,IF(isGlobal=1,1,0) AS allow
+		FROM adminsysuseraccounts s INNER JOIN adminbranchusers b ON s.branchcode=b.branchcode AND s.ResourceID=b.ResourceID AND s.Zonecode = b.Zonecode 
+		INNER JOIN branches br ON s.branchcode=br.branchcode AND s.zonecode=br.zonecode 
+		WHERE (s.Roleid='KP-IAD' OR s.Roleid='KP-WebReports' OR s.Roleid='KP-FSD' OR s.Roleid='CAD' OR s.Roleid='KP-FD' OR s.Roleid='KP-CAD')  AND s.UserLogin= _UserLogin AND s.IsActive = 1 AND IsResign=0 LIMIT 1;
+	
+	ELSEIF _type='D' THEN
+	
+		SELECT DISTINCT br.regionname AS Region,IF(br.regioncode IS NULL OR br.regioncode='',1,br.regioncode) AS regioncode, NOW() AS myr, s.UserLogin AS Username, s.UserPassword AS UserPass, s.roleid AS jobRole, s.DivCode AS DivisionCode, s.ResourceID AS ResourceID, 
+		s.Zonecode AS ZoneCode, b.Fullname AS Fullname, s.Roleid AS role, 1 AS Admin,IF(isDomestic=1,1,0) AS allow
+		FROM adminsysuseraccounts s INNER JOIN adminbranchusers b ON s.branchcode=b.branchcode AND s.ResourceID=b.ResourceID AND s.Zonecode = b.Zonecode 
+		INNER JOIN branches br ON s.branchcode=br.branchcode AND s.zonecode=br.zonecode 
+		WHERE (s.Roleid='KP-IAD' OR s.Roleid='KP-WebReports' OR s.Roleid='KP-FSD' OR s.Roleid='KP-SECCOMLNCR' OR s.Roleid='KP-SECCOM' OR s.Roleid='KP-SECCOMVISMIN'  
+		OR s.Roleid='CAD' OR s.Roleid='KP-FD' OR s.Roleid='KP-CAD')  
+		AND s.UserLogin= _UserLogin AND s.IsActive = 1 AND IsResign=0 LIMIT 1;
+	
+	ELSEIF _type='U' THEN
+	
+		SELECT DISTINCT br.regionname AS Region,br.regioncode, NOW() AS myr, s.UserLogin AS Username, s.UserPassword AS UserPass, s.roleid AS jobRole, s.DivCode AS DivisionCode, s.ResourceID AS ResourceID, 
+		s.Zonecode AS ZoneCode, b.Fullname AS Fullname, s.Roleid AS role, 1 AS Admin,IF(isFileUpload=1,1,0) AS allow
+		FROM adminsysuseraccounts s INNER JOIN adminbranchusers b ON s.branchcode=b.branchcode AND s.ResourceID=b.ResourceID AND s.Zonecode = b.Zonecode 
+		INNER JOIN branches br ON s.branchcode=br.branchcode AND s.zonecode=br.zonecode 
+		WHERE (s.Roleid='KP-IAD' OR s.Roleid='KP-WebReports' OR s.Roleid='KP-FSD' OR s.Roleid='CAD' OR s.Roleid='KP-FD' OR s.Roleid='KP-CAD')  AND s.UserLogin= _UserLogin AND s.IsActive = 1 AND IsResign=0 LIMIT 1;
+	
+	ELSEIF _type='T' THEN
+	
+		SELECT DISTINCT br.regionname AS Region,br.regioncode, NOW() AS myr, s.UserLogin AS Username, s.UserPassword AS UserPass, s.roleid AS jobRole, s.DivCode AS DivisionCode, s.ResourceID AS ResourceID, 
+		s.Zonecode AS ZoneCode, b.Fullname AS Fullname, s.Roleid AS role, 1 AS Admin,IF(isFileTransmit=1,1,0) AS allow
+		FROM adminsysuseraccounts s INNER JOIN adminbranchusers b ON s.branchcode=b.branchcode AND s.ResourceID=b.ResourceID AND s.Zonecode = b.Zonecode 
+		INNER JOIN branches br ON s.branchcode=br.branchcode AND s.zonecode=br.zonecode 
+		WHERE (s.Roleid='KP-IAD' OR s.Roleid='KP-WebReports' OR s.Roleid='KP-FSD' OR s.Roleid='CAD' OR s.Roleid='KP-FD' OR s.Roleid='KP-CAD')  AND s.UserLogin= _UserLogin AND s.IsActive = 1 AND IsResign=0 LIMIT 1;
+	
+	ELSEIF _type='F' THEN
+	
+		SELECT DISTINCT br.regionname AS Region,br.regioncode, NOW() AS myr, s.UserLogin AS Username, s.UserPassword AS UserPass, s.roleid AS jobRole, s.DivCode AS DivisionCode, s.ResourceID AS ResourceID, 
+		s.Zonecode AS ZoneCode, b.Fullname AS Fullname, s.Roleid AS role, 1 AS Admin,IF(isForex=1,1,0) AS allow
+		FROM adminsysuseraccounts s INNER JOIN adminbranchusers b ON s.branchcode=b.branchcode AND s.ResourceID=b.ResourceID AND s.Zonecode = b.Zonecode 
+		INNER JOIN branches br ON s.branchcode=br.branchcode AND s.zonecode=br.zonecode 
+		WHERE (s.Roleid='KP-IAD' OR s.Roleid='KP-WebReports' OR s.Roleid='KP-FSD' OR s.Roleid='CAD' OR s.Roleid='KP-FD' OR s.Roleid='KP-CAD')  AND s.UserLogin= _UserLogin AND s.IsActive = 1 AND IsResign=0 LIMIT 1;
+	ELSE
+		SELECT '0' AS allow;
+	END IF;
+	
+	ELSE
+   
+   #para ni siya sa new register pohon
+        IF _type='P' THEN                
+        
+		SELECT DISTINCT br.regionname AS Region,IF(br.regioncode IS NULL OR br.regioncode='',1,br.regioncode) AS regioncode,br.areacode, NOW() AS myr, s.UserLogin AS Username, s.UserPassword AS UserPass, s.roleid AS jobRole, s.DivCode AS DivisionCode, s.ResourceID AS ResourceID, 
+		s.Zonecode AS ZoneCode, b.Fullname AS Fullname, s.Roleid AS role, 1 AS Admin,IF(isPartner=1 OR s.Roleid='CAD-DIVMAN',1,0) AS allow,'CU' AS `type`,b.firstname,b.lastname
+		FROM adminsysuseraccounts s INNER JOIN adminbranchusers b ON s.branchcode=b.branchcode AND s.ResourceID=b.ResourceID AND s.Zonecode = b.Zonecode 
+		INNER JOIN branches br ON s.branchcode=br.branchcode AND s.zonecode=br.zonecode 
+		WHERE s.UserLogin= _UserLogin AND s.IsActive = 1 AND IsResign=0;
+ 
+        ELSEIF _type='G' THEN
+  
+		SELECT DISTINCT br.regionname AS Region,br.regioncode, NOW() AS myr, s.UserLogin AS Username, s.UserPassword AS UserPass, s.roleid AS jobRole, s.DivCode AS DivisionCode, s.ResourceID AS ResourceID, 
+		s.Zonecode AS ZoneCode, b.Fullname AS Fullname, s.Roleid AS role, 1 AS Admin,IF(isGlobal=1,1,0) AS allow
+		FROM adminsysuseraccounts s INNER JOIN adminbranchusers b ON s.branchcode=b.branchcode AND s.ResourceID=b.ResourceID AND s.Zonecode = b.Zonecode 
+		INNER JOIN branches br ON s.branchcode=br.branchcode AND s.zonecode=br.zonecode 
+		WHERE s.UserLogin= _UserLogin AND s.IsActive = 1 AND IsResign=0 LIMIT 1;
+	
+	ELSEIF _type='D' THEN
+  
+		SELECT DISTINCT br.regionname AS Region,IF(br.regioncode IS NULL OR br.regioncode='',1,br.regioncode) AS regioncode, NOW() AS myr, s.UserLogin AS Username, s.UserPassword AS UserPass, s.roleid AS jobRole, s.DivCode AS DivisionCode, s.ResourceID AS ResourceID, 
+		s.Zonecode AS ZoneCode, b.Fullname AS Fullname, s.Roleid AS role, 1 AS Admin,IF(isDomestic=1,1,0) AS allow
+		FROM adminsysuseraccounts s INNER JOIN adminbranchusers b ON s.branchcode=b.branchcode AND s.ResourceID=b.ResourceID AND s.Zonecode = b.Zonecode 
+		INNER JOIN branches br ON s.branchcode=br.branchcode AND s.zonecode=br.zonecode 
+		WHERE s.UserLogin= _UserLogin AND s.IsActive = 1 AND IsResign=0 LIMIT 1;
+       
+       ELSEIF _type='U' THEN
+       
+		SELECT DISTINCT br.regionname AS Region,br.regioncode, NOW() AS myr, s.UserLogin AS Username, s.UserPassword AS UserPass, s.roleid AS jobRole, s.DivCode AS DivisionCode, s.ResourceID AS ResourceID, 
+		s.Zonecode AS ZoneCode, b.Fullname AS Fullname, s.Roleid AS role, 1 AS Admin,IF(isFileUpload=1,1,0) AS allow
+		FROM adminsysuseraccounts s INNER JOIN adminbranchusers b ON s.branchcode=b.branchcode AND s.ResourceID=b.ResourceID AND s.Zonecode = b.Zonecode 
+		INNER JOIN branches br ON s.branchcode=br.branchcode AND s.zonecode=br.zonecode 
+		WHERE s.UserLogin= _UserLogin AND s.IsActive = 1 AND IsResign=0 LIMIT 1;
+	
+	ELSEIF _type='T' THEN
+	
+		SELECT DISTINCT br.regionname AS Region,br.regioncode, NOW() AS myr, s.UserLogin AS Username, s.UserPassword AS UserPass, s.roleid AS jobRole, s.DivCode AS DivisionCode, s.ResourceID AS ResourceID, 
+		s.Zonecode AS ZoneCode, b.Fullname AS Fullname, s.Roleid AS role, 1 AS Admin,IF(isFileTransmit=1,1,0) AS allow
+		FROM adminsysuseraccounts s INNER JOIN adminbranchusers b ON s.branchcode=b.branchcode AND s.ResourceID=b.ResourceID AND s.Zonecode = b.Zonecode 
+		INNER JOIN branches br ON s.branchcode=br.branchcode AND s.zonecode=br.zonecode 
+		WHERE s.UserLogin= _UserLogin AND s.IsActive = 1 AND IsResign=0 LIMIT 1;
+	
+	ELSEIF _type='F' THEN
+	
+		SELECT DISTINCT br.regionname AS Region,br.regioncode, NOW() AS myr, s.UserLogin AS Username, s.UserPassword AS UserPass, s.roleid AS jobRole, s.DivCode AS DivisionCode, s.ResourceID AS ResourceID, 
+		s.Zonecode AS ZoneCode, b.Fullname AS Fullname, s.Roleid AS role, 1 AS Admin,IF(isForex=1,1,0) AS allow
+		FROM adminsysuseraccounts s INNER JOIN adminbranchusers b ON s.branchcode=b.branchcode AND s.ResourceID=b.ResourceID AND s.Zonecode = b.Zonecode 
+		INNER JOIN branches br ON s.branchcode=br.branchcode AND s.zonecode=br.zonecode 
+		WHERE s.UserLogin= _UserLogin AND s.IsActive = 1 AND IsResign=0 LIMIT 1;
+	
+	END IF;
+ END IF;
+ 
+ END$$
+
+DELIMITER ;

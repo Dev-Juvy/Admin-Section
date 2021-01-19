@@ -1,0 +1,139 @@
+<%@ MASTER LANGUAGE="VB" CodeFile="MasterPage.master.vb" Inherits="MasterPage" %>
+
+<%@ Register Assembly="AjaxControlToolkit" Namespace="AjaxControlToolkit" TagPrefix="asp" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head id="Head1" runat="server">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta http-equiv="x-ua-compatible" content="ie=emulateie9" />
+        <meta NAME="DownloadOptions" content="nosave" />
+        <link rel="shortcut icon" href="../Images/application.ico" />
+        <script src="../JavaScript/jquery-1.4.4.min.js" TYPE="text/javascript"></script>
+        <script src="../JavaScript/Back.js" TYPE="text/javascript"></script>
+        <script src="../JavaScript/jquery-1.3.1.min.js" TYPE="text/javascript"></script>
+        <script src="../JavaScript/jquery.dropdownPlain.js" TYPE="text/javascript"></script>
+        <link href="../CSS/style.css" rel="stylesheet" TYPE="text/css" />
+    
+        <title></title>
+         <script type="text/javascript">
+             function Jigsawalert(rptname) {
+                 var link = document.createElement("a");
+                 var baseDirectory = "../export/";
+                 link.download = rptname;
+                 link.href = baseDirectory + rptname;
+                 link.click();
+             }
+             var ttype = null;
+             function ttypechange(id) { ttype = id.value; }
+             function txtdatechange(id) {
+                 var today = new Date();
+                 var dayformat = today.getFullYear() + "-" + pad((today.getMonth() + 1), 2) + "-" + pad(today.getDate(), 2);
+                 var prevday = today.getFullYear() + "-" + pad((today.getMonth() + 1), 2) + "-" + pad((today.getDate()-1), 2);
+                 var value = id.value;
+                 if (value >= dayformat && ttype == 50) { id.value = prevday;  }
+                 
+             }
+
+             function pad(str, max) {
+                 str = str.toString();
+                 return str.length < max ? pad("0" + str, max) : str;
+             }
+
+    </script>
+
+    
+
+    </head>
+    <body>
+        <form id="form1" runat="server">
+            <div id="header" align="center"><asp:ToolkitScriptManager ID="ToolkitScriptManager1" runat="server"> </asp:ToolkitScriptManager></div>
+            <div id="mlkpUserInfo">
+                <asp:Label ID="lbldate" runat="server" TEXT=" Date Today" Font-NAMES="Arial" Font-Size="9pt" Width="300px"></asp:Label><br />
+                Welcome!
+                <asp:Label ID="lblUserfullname" runat="server" TEXT="FirstName LastName" class="lblNamecss" Style="text-align: right; color: #000000;" ForeColor="#0000CC" Font-NAMES="Arial" Font-Size="13pt"></asp:Label>
+                <asp:Label ID="Label5" runat="server" TEXT="|" ForeColor="#666666"></asp:Label>
+                <asp:Button ID="btncpass" runat="server" TEXT="Change Password" BorderStyle="None" CssClass="buttonLogout" BackColor="transparent" Font-Underline="True" Height="19px" Width="103px" Font-NAMES="Arial" Font-Size="8pt" />
+                <asp:Label ID="Label4" runat="server" TEXT="|"></asp:Label>
+                <asp:Button ID="btnLogout" runat="server" TEXT="Logout" BorderStyle="None" CssClass="buttonLogout" BackColor="transparent" Font-Underline="True" Height="19px" Width="49px" Font-NAMES="Arial" Font-Size="8pt" />
+            </div>
+            <div id="menuDiv">
+                <div id="menuTitle">
+                    <asp:Label ID="Label1" runat="server" TEXT="MLKP Partner Web System v7.67.2" Font-NAMES="Arial" Font-Size="9pt" ForeColor="White"></asp:Label>
+                </div>
+                <div id="menuSeparator1st"><asp:Label ID="Label6" runat="server" TEXT="|"></asp:Label> </div>
+                <div id="Reports1">
+                    <ul id="Reports">
+                        <li><a class="Reportslits" href="MainForm.aspx">
+                            <asp:Label ID="Label8" runat="server" TEXT="REPORTS" Font-NAMES="Arial" Font-Size="9pt"></asp:Label></a>
+                            <ul>
+                                <li id="type1" runat="server"><a class="Reportslits" href="CorpMenu.aspx?RptType=1">Corporate Partners</a></li>
+                                <li id="type2" runat="server"><a class="Reportslits" href="CorpMenu.aspx?RptType=2">Bills Payment</a></li>
+                                <li id="type3" runat="server"><a class="Reportslits" href="CorpMenu.aspx?RptType=3">Payment Solution</a></li>
+                                <li id="type4" runat="server"><a class="Reportslits" href="CorpMenu.aspx?RptType=4">File Upload</a></li>
+                                <li id="type6" runat="server"><a class="Reportslits" href="CorpMenu.aspx?RptType=6">Web Service Client</a></li>
+                                <li id="type9" runat="server"><a class="Reportslits" href="CorpMenu.aspx?RptType=9">Special Partners</a></li>
+                                <li id="type11" runat="server"><a class="Reportslits" href="CorpMenu.aspx?RptType=11">Batch Upload</a></li>
+                                <li id="type13" runat="server"><a class="Reportslits" href="CorpMenu.aspx?RptType=13">HO Batch Upload</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                <div id="menuSeparatorexpress"><asp:Label ID="Label9" runat="server" Text="|"></asp:Label></div>
+                <div id="Reports2">
+                    <ul  id="Reports">
+                        <li id="type5" runat="server"><a class="Reportslits" href="CorpMenu.aspx?RptType=5">
+                            <asp:Label ID="Label7" runat="server" Text="ML EXPRESS" Font-Names="Arial" Font-Size="9pt"></asp:Label></a>
+                        </li>
+                    </ul>
+                </div>
+                <div id="menuSeparatorwallet"><asp:Label ID="Label10" runat="server" Text="|"></asp:Label></div>   <%-- edited--%>
+                <div id="Reports3">
+                    <ul id="Reports">
+                        <li id="type7" runat="server"><a class="Reportslits" href="CorpMenu.aspx?RptType=7">
+                            <asp:Label ID="Label11" runat="server" Text="ML WALLET" Font-Names="Arial" Font-Size="9pt"></asp:Label></a>
+                        </li>
+                        <li id="subtype10" runat="server"><a class="Reportslits" href="CorpMenu.aspx?RptType=10">
+                            <asp:Label ID="Label2" runat="server" Text="ML WALLET EMPLOYEE" Font-Names="Arial" Font-Size="9pt"></asp:Label></a>
+                        </li>
+                    </ul>   
+                </div> <%-- edited --%>
+             <div id="menuSeparatorMlonline"><asp:Label ID="Label12" runat="server" Text="|"></asp:Label></div>
+                <div id="Reports4">
+                    <ul  id="Reports">
+                        <li id="type8" runat="server"><a class="Reportslits" href="CorpMenu.aspx?RptType=8">
+                            <asp:Label ID="Label13" runat="server" Text="ML ONLINE" Font-Names="Arial" Font-Size="9pt"></asp:Label></a>
+                        </li>
+                    </ul>
+                </div>
+                 <div id="menuSeparatorMlWalletEmp"><asp:Label ID="Label14" runat="server" Text="|"></asp:Label></div>
+                <div id="Reports5">
+                    <ul  id="Reports">
+                        <li id="type10" runat="server"><a class="Reportslits" href="CorpMenu.aspx?RptType=10">
+                            <asp:Label ID="Label15" runat="server" Text="ML WALLET EMPLOYEE" Font-Names="Arial" Font-Size="9pt"></asp:Label></a>
+                        </li>
+                    </ul>
+                </div>
+                <div id="menuSepSetcollection"><asp:Label ID="Label16" runat="server" Text="|"></asp:Label></div>
+                <div id="Reports6">
+                    <ul  id="Reports">
+                        <li id="type12" runat="server"><a class="Reportslits" href="CorpMenu.aspx?RptType=12">
+                            <asp:Label ID="Label17" runat="server" Text="SETTLEMENT & COLLECTION" Font-Names="Arial" Font-Size="9pt"></asp:Label></a>
+                        </li>
+                    </ul>
+                </div>
+
+                </div>
+            <div id="content">
+                <div id="spacer"> </div>
+                <div> <asp:ContentPlaceHolder ID="MainContent" runat="server"> </asp:ContentPlaceHolder> </div>
+            </div>
+            <div id="footerDiv">
+                <div id="labelFooter">
+                    <div id="leftLabelf">M.Lhuillier Philippines Inc.</div>
+                    <div id="RightLabelf">All Rights Reserved.</div>
+                </div>
+            </div>
+        </form>
+    </body>
+</html>

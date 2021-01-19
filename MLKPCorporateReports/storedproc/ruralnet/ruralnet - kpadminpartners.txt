@@ -1,0 +1,29 @@
+
+
+USE `kpadminpartners`;
+
+/* Procedure structure for procedure `HOcorporate_RuralNet` */
+
+DROP PROCEDURE IF EXISTS  `HOcorporate_RuralNet` ;
+
+DELIMITER $$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `HOcorporate_RuralNet`(IN accountid VARCHAR(20), IN _userid VARCHAR(100))
+BEGIN
+	IF accountid = '' THEN
+		SET @query= CONCAT('SELECT al.accountname ,al.accountid,i.integrationtype FROM kpadminpartners.accountlist al 
+		INNER JOIN `kpadminpartners`.`accountintegration` i ON i.accountid=al.accountid
+		WHERE al.isactive = 1 and `integrationtype` IN (''5'') AND AccountType NOT IN (''MLBPP'') GROUP BY accountname;');
+	ELSE
+		SET @query= CONCAT('SELECT al.accountname ,al.accountid,i.integrationtype FROM kpadminpartners.accountlist al 
+		INNER JOIN `kpadminpartners`.`accountintegration` i ON i.accountid=al.accountid
+		WHERE al.isactive = 1 and `integrationtype` IN (''5'') AND AccountType NOT IN (''MLBPP'') and al.accountid = ''',accountid,''' 
+		and if((SELECT userid FROM `kpadminpartners`.`accountcredential` WHERE accountid=''',accountid,''' and userid=''',_userid,''') is not null,1,0)
+		GROUP BY accountname;');
+	END IF;
+	PREPARE StrSQL FROM @query;
+	EXECUTE StrSQL;
+	DEALLOCATE PREPARE StrSQL;
+ END$$
+
+DELIMITER ;

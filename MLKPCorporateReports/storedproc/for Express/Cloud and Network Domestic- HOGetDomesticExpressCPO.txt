@@ -1,0 +1,118 @@
+DELIMITER $$
+
+USE `kpdomestic`$$
+
+DROP PROCEDURE IF EXISTS `HOGetDomesticExpressCPO`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOGetDomesticExpressCPO`(IN potable VARCHAR(4),  IN zcode VARCHAR(5),IN rcode VARCHAR(5),IN acode VARCHAR(5),IN bcode VARCHAR(5),IN _year VARCHAR(5), IN _usertype VARCHAR(10),IN _username VARCHAR(50), IN oldzcode VARCHAR(5))
+BEGIN
+IF _usertype = "NOTIAD" THEN #NOT IAD USER
+		SET @n_query= CONCAT('
+		SELECT DISTINCT kptn, cancelleddate, transdate, socancelcharge, controlno, principal, charge, referenceno, currency, sendername, 
+		receivername, if(Operator is null,cancelledbyoperatorid,Operator) as Operator, cancelreason
+		FROM(
+		SELECT p.oldkptnno as kptn,p.cancelleddate,DATE_FORMAT(p.sodate,''%m/%d/%Y'') AS transdate,IF(p.servicecharge IS NULL,0,p.servicecharge) AS socancelcharge,
+		p.controlno,IF(p.sysmodifier=1,0.00,p.principal) AS principal,p.servicecharge AS charge,p.oldkptnno AS referenceno,p.currency,
+		p.sendername,p.receivername, p.cancelledbyoperatorid,
+		IF( (SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=p.cancelledbyoperatorid LIMIT 1) IS NULL,
+		(SELECT fullname FROM kpusers.adminbranchusers b INNER JOIN kpusers.adminsysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=p.cancelledbyoperatorid LIMIT 1),
+		(SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=p.cancelledbyoperatorid LIMIT 1)
+		) AS Operator,
+		p.cancelledreason AS cancelreason		
+		FROM payout',potable,' p
+		#INNER JOIN `kpforms`.`PayoutCommission` pc ON pc.kptn=p.oldkptnno
+		#INNER JOIN kpusers.branches b ON b.branchcode = '',branchcode,'' AND (b.zonecode = '',zonecode,'' or b.oldzonecode = '',zonecode,'')
+		WHERE  YEAR(cancelleddate)=',_year,' AND p.controlno LIKE ''%op%'' AND p.operatorid=''',_username,''' 
+		AND p.CancelledReason IN(''wrong payout''))X GROUP BY kptn
+');
+ELSEIF _usertype = "IAD" THEN #IAD USER
+	IF _username = "" THEN #NO SPECIFIC PARTNER - FOR SUMMARY
+		IF bcode<>"" AND acode<>"" AND rcode<>"" THEN#BY BRANCH
+			SET @n_query= CONCAT('
+			SELECT DISTINCT kptn, cancelleddate, transdate, socancelcharge, controlno, principal, charge, referenceno, currency, sendername, 
+			receivername, if(Operator is null,cancelledbyoperatorid,Operator) as Operator, cancelreason, partnername
+			FROM(
+			SELECT p.oldkptnno as kptn,p.cancelleddate,DATE_FORMAT(p.sodate,''%m/%d/%Y'') AS transdate,IF(p.servicecharge IS NULL,0,p.servicecharge) AS socancelcharge,
+			p.controlno,IF(p.sysmodifier=1,0.00,p.principal) AS principal,p.servicecharge AS charge,p.oldkptnno AS referenceno,p.currency,
+			p.sendername,p.receivername, p.cancelledbyoperatorid,
+			IF( (SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=p.cancelledbyoperatorid LIMIT 1) IS NULL,
+			(SELECT fullname FROM kpusers.adminbranchusers b INNER JOIN kpusers.adminsysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=p.cancelledbyoperatorid LIMIT 1),
+			(SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=p.cancelledbyoperatorid LIMIT 1)
+			) AS Operator,
+			p.cancelledreason AS cancelreason, p.operatorid as partnername		
+			FROM payout',potable,' p
+			#INNER JOIN `kpforms`.`PayoutCommission` pc ON pc.kptn=p.oldkptnno 
+			WHERE  YEAR(cancelleddate)=',_year,' AND p.controlno LIKE ''%op%'' #AND p.operatorid=''',_username,''' 
+			AND p.branchcode = ',bcode,' AND p.zonecode = ',zcode,'
+			AND p.CancelledReason IN(''wrong payout''))X GROUP BY kptn
+			');
+		END IF;
+	ELSEIF _username <> "" THEN #WITH SPECIFIC PARTNER 
+		IF bcode<>"" AND acode<>"" AND rcode<>"" THEN#BY BRANCH
+			SET @n_query= CONCAT('
+			SELECT DISTINCT kptn, cancelleddate, transdate, socancelcharge, controlno, principal, charge, referenceno, currency, sendername, 
+			receivername, if(Operator is null,cancelledbyoperatorid,Operator) as Operator, cancelreason
+			FROM(
+			SELECT p.oldkptnno as kptn,p.cancelleddate,DATE_FORMAT(p.sodate,''%m/%d/%Y'') AS transdate,IF(p.servicecharge IS NULL,0,p.servicecharge) AS socancelcharge,
+			p.controlno,IF(p.sysmodifier=1,0.00,p.principal) AS principal,p.servicecharge AS charge,p.oldkptnno AS referenceno,p.currency,
+			p.sendername,p.receivername, p.cancelledbyoperatorid,
+			IF( (SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=p.cancelledbyoperatorid LIMIT 1) IS NULL,
+			(SELECT fullname FROM kpusers.adminbranchusers b INNER JOIN kpusers.adminsysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=p.cancelledbyoperatorid LIMIT 1),
+			(SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=p.cancelledbyoperatorid LIMIT 1)
+			) AS Operator,
+			p.cancelledreason AS cancelreason		
+			FROM payout',potable,' p
+			#INNER JOIN `kpforms`.`PayoutCommission` pc ON pc.kptn=p.oldkptnno
+			WHERE  YEAR(cancelleddate)=',_year,' AND p.controlno LIKE ''%op%'' AND p.operatorid=''',_username,''' 
+			AND p.branchcode = ',bcode,' AND p.zonecode = ',zcode,'
+			AND p.CancelledReason IN(''wrong payout''))X GROUP BY kptn
+			');
+		ELSEIF bcode="" AND acode<>"" AND rcode<>"" THEN#BY AREA
+			SET @n_query= CONCAT('
+			SELECT DISTINCT kptn, cancelleddate, transdate, socancelcharge, controlno, principal, charge, referenceno, currency, sendername, 
+			receivername, if(Operator is null,cancelledbyoperatorid,Operator) as Operator, cancelreason
+			FROM(
+			SELECT p.oldkptnno as kptn,p.cancelleddate,DATE_FORMAT(p.sodate,''%m/%d/%Y'') AS transdate,IF(p.servicecharge IS NULL,0,p.servicecharge) AS socancelcharge,
+			p.controlno,IF(p.sysmodifier=1,0.00,p.principal) AS principal,p.servicecharge AS charge,p.oldkptnno AS referenceno,p.currency,
+			p.sendername,p.receivername, p.cancelledbyoperatorid,
+			IF( (SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=p.cancelledbyoperatorid LIMIT 1) IS NULL,
+			(SELECT fullname FROM kpusers.adminbranchusers b INNER JOIN kpusers.adminsysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=p.cancelledbyoperatorid LIMIT 1),
+			(SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=p.cancelledbyoperatorid LIMIT 1)
+			) AS Operator,
+			p.cancelledreason AS cancelreason		
+			FROM payout',potable,' p
+			#INNER JOIN `kpforms`.`PayoutCommission` pc ON pc.kptn=p.oldkptnno
+			INNER JOIN kpusers.branches b ON  (b.zonecode = ',zcode,' or b.oldzonecode = ',oldzcode,') and b.regioncode = ',rcode,' and b.areacode=''',acode,'''  AND b.branchcode=p.branchcode 	
+			WHERE  YEAR(cancelleddate)=',_year,' AND p.controlno LIKE ''%op%'' AND p.operatorid=''',_username,''' 
+			AND p.zonecode=',zcode,'			
+			AND p.CancelledReason IN(''wrong payout''))X GROUP BY kptn
+			');
+		ELSEIF bcode="" AND acode="" AND rcode<>"" THEN#BY REGION
+			SET @n_query= CONCAT('
+			SELECT DISTINCT kptn, cancelleddate, transdate, socancelcharge, controlno, principal, charge, referenceno, currency, sendername, 
+			receivername, if(Operator is null,cancelledbyoperatorid,Operator) as Operator, cancelreason
+			FROM(
+			SELECT p.oldkptnno as kptn,p.cancelleddate,DATE_FORMAT(p.sodate,''%m/%d/%Y'') AS transdate,IF(p.servicecharge IS NULL,0,p.servicecharge) AS socancelcharge,
+			p.controlno,IF(p.sysmodifier=1,0.00,p.principal) AS principal,p.servicecharge AS charge,p.oldkptnno AS referenceno,p.currency,
+			p.sendername,p.receivername, p.cancelledbyoperatorid,
+			IF( (SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=p.cancelledbyoperatorid LIMIT 1) IS NULL,
+			(SELECT fullname FROM kpusers.adminbranchusers b INNER JOIN kpusers.adminsysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=p.cancelledbyoperatorid LIMIT 1),
+			(SELECT fullname FROM kpusers.branchusers b INNER JOIN kpusers.sysuseraccounts a ON b.resourceid=a.resourceid WHERE userlogin=p.cancelledbyoperatorid LIMIT 1)
+			) AS Operator,
+			p.cancelledreason AS cancelreason		
+			FROM payout',potable,' p
+			#INNER JOIN `kpforms`.`PayoutCommission` pc ON pc.kptn=p.oldkptnno
+			INNER JOIN kpusers.branches b ON  (b.zonecode = ',zcode,' or b.oldzonecode = ',oldzcode,') and b.regioncode = ',rcode,'   AND b.branchcode=p.branchcode 	
+			WHERE  YEAR(cancelleddate)=',_year,' AND p.controlno LIKE ''%op%'' AND p.operatorid=''',_username,''' 
+			AND p.zonecode=',zcode,'			
+			AND p.CancelledReason IN(''wrong payout''))X GROUP BY kptn
+			');
+		END IF;
+	END IF;
+END IF;															
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

@@ -1,0 +1,38 @@
+
+
+USE `kpbillspayment`;
+
+/* Procedure structure for procedure `BillsPaymentOLDKPTN` */
+
+DROP PROCEDURE IF EXISTS  `BillsPaymentOLDKPTN` ;
+
+DELIMITER $$
+
+CREATE  PROCEDURE `BillsPaymentOLDKPTN`(IN sotable VARCHAR(4), IN oldkptn VARCHAR(50), IN accountid VARCHAR(100))
+BEGIN
+	SET @n_query= CONCAT('
+	select 
+	Control_No,Transaction_Time as Transaction_Date,NEW_KPTN as KPTN,Account_No,Account_Name,Payor_Name,
+	Payment_To,IR_No,Amount_Paid,Cancellation_Charge,Other_Charge,Operator_ID,
+	Branch_Code,Zone_Code,Remote_OperatorID,Remote_BranchCode,Employee_Name
+	from
+	(
+			SELECT soTable.ControlNo as Control_No,DATE_FORMAT(soTable.TransDate,''%Y-%m-%d %r'') as Transaction_Time, soTable.KPTNNo as NEW_KPTN,soTable.AccountNo as Account_No,
+			CONCAT(soTable.AccountFname,'' '',soTable.AccountMname,'' '',soTable.AccountLname)as Account_Name,
+			CONCAT(soTable.PayorFname,'' '',soTable.PayorMname,'' '',soTable.PayorLname)as Payor_Name,
+			acl.AccountName as Payment_To, soTable.IRNo as IR_No, soTable.amountPaid as Amount_Paid, 
+			soTable.CancelCharge as Cancellation_Charge,soTable.CustomerCharge as Other_Charge,soTable.OperatorID as Operator_ID,
+			soTable.BranchCode as Branch_Code,soTable.ZoneCode as Zone_Code, soTable.RemoteOperatorID as Remote_OperatorID, soTable.RemoteBranchCode as Remote_BranchCode
+			,soTable.OperatorID as Employee_Name FROM kpbillspayment.sendout',sotable,' soTable 
+			INNER JOIN kpadminpartners.accountlist acl on acl.AccountID=soTable.CompanyID
+			WHERE soTable.CancelReason in (''Change Details'') 
+			AND soTable.companyid=''',accountid,'''
+			AND soTable.KPTNNo=''',oldkptn,''' ORDER BY DATE_FORMAT(Transaction_Time, ''%k%i%s'') ASC
+			)x group by NEW_KPTN
+			');
+												
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END $$
+DELIMITER ;

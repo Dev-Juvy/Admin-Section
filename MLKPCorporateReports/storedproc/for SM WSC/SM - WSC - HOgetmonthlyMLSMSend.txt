@@ -1,0 +1,54 @@
+DELIMITER $$
+
+USE `kppartners`$$
+
+DROP PROCEDURE IF EXISTS `HOgetmonthlyMLSMSend`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetmonthlyMLSMSend`(IN datefrom VARCHAR(15),IN dateto VARCHAR(15), IN accountCode VARCHAR(35),IN subaccountid VARCHAR(35))
+BEGIN
+	DECLARE _monthdate VARCHAR(4);
+	DECLARE _year VARCHAR(4);
+	
+	DROP  TEMPORARY  TABLE IF EXISTS kppartners.tmpsmmonthlytxn;
+	CREATE  TEMPORARY TABLE kppartners.tmpsmmonthlytxn(bcode VARCHAR(100),bname VARCHAR(100),smlocation VARCHAR(100),smlocationid VARCHAR(100),
+	itemcount VARCHAR(100),principal VARCHAR(100),fee VARCHAR(100),total VARCHAR(100),feeshare VARCHAR(100));
+	
+	WHILE DATE(datefrom) <= DATE(dateto) DO
+		SET _monthdate = DATE_FORMAT(datefrom,'%m%d');
+		SET _year = DATE_FORMAT(datefrom,'%Y');
+		
+		SET @n_query= CONCAT('INSERT INTO kppartners.tmpsmmonthlytxn(bcode,bname,smlocation,smlocationid,itemcount,principal,fee,total,feeshare)'
+		'SELECT bcode,bname,CONCAT(bname,''-'', smlocation) AS smlocation,if(smlocationid is null,''-'',smlocationid) as smlocationid,COUNT(kptn) AS itemcount,
+		SUM(principal) AS  principal,SUM(charge) AS fee,(SUM(principal)+SUM(charge)) AS total,(SUM(charge)*(0.33)) AS feeshare
+		FROM (SELECT 
+		DISTINCT a.accountname as bcode,
+		a.accountname AS bname,sl.sublocationdesc AS smlocation,
+		#sl.sublocationid AS smlocationid,
+		(select locationCode from kpadminpartners.accountlist where accountid =''',accountCode,''' and isactive=1 limit 1) as smlocationid,
+		s.kptn,s.principal,s.charge
+		FROM kppartners.sendout',_monthdate,'  s
+		INNER JOIN kpadminpartners.accountlist a ON a.accountid=s.accountcode
+		INNER JOIN kppartners.sotxnref sf ON sf.accountcode=s.accountcode AND sf.referenceno=s.referenceno
+		INNER JOIN `kpORNO`.`orDetails` od ON od.refno=s.referenceno AND od.accountid=s.accountcode
+		INNER JOIN `kpadminpartners`.`ws_Sublocation` sl ON sl.subaccountid=s.accountcode AND sl.sublocationid=od.locationid
+		WHERE s.accountcode=''',accountCode,'''  AND od.locationid=''',subaccountid,'''
+		AND YEAR(s.transdate)=',_year,' AND sf.transactiontype IN (''3'') 
+		GROUP BY s.kptn
+		)X
+		');
+		SET datefrom = DATE_ADD(datefrom, INTERVAL 1 DAY); 
+		PREPARE StrSQL FROM @n_query;
+		EXECUTE StrSQL;               
+	END WHILE;
+	
+		
+	SET @sql3=CONCAT('select bcode,bname,smlocation,smlocationid,if(sum(itemcount) is null,0,sum(itemcount)) as itemcount,
+	if(sum(principal) is null,0,sum(principal)) as principal,if(sum(fee) is null,0,sum(fee)) as fee,
+	if(sum(total) is null,0,sum(total)) as total,if(sum(feeshare) is null,0,sum(feeshare)) as feeshare 
+	from kppartners.tmpsmmonthlytxn where bcode is not null group by smlocationid; ');
+	PREPARE gtpo3 FROM @sql3;
+	EXECUTE gtpo3;
+	
+    END$$
+
+DELIMITER ;

@@ -1,0 +1,41 @@
+DELIMITER $$
+
+USE `kpmobile`$$
+
+DROP PROCEDURE IF EXISTS `MLWalletRTS`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `MLWalletRTS`(IN _datefrom VARCHAR(15),IN _dateto VARCHAR(15))
+BEGIN
+DECLARE _monthdate VARCHAR(4);
+DECLARE _year VARCHAR(4);
+DROP  TEMPORARY  TABLE IF EXISTS `kpmobile`.tmpwalletrts;
+CREATE  TEMPORARY TABLE `kpmobile`.tmpwalletrts(id VARCHAR(100),controlno VARCHAR(100),sendersname VARCHAR(100),
+			datecancelled VARCHAR(100),receiversname VARCHAR(100),kptn VARCHAR(100),
+			datesend VARCHAR(100), amount VARCHAR(100), charge VARCHAR(100));
+WHILE DATE(_datefrom) <= DATE(_dateto) DO
+SET _monthdate = DATE_FORMAT(_datefrom,'%m%d');
+SET _year = DATE_FORMAT(_datefrom,'%Y');
+		
+SET @n_query= CONCAT(
+	'INSERT INTO `kpmobile`.tmpwalletrts(id, controlno, sendersname, datecancelled, receiversname, 
+		kptn,datesend,amount,charge)'
+	'SELECT id, controlno, sendername AS sendersname, cancelleddate AS datecancelled, 
+		receivername AS receiversname,kptnno AS kptn, transdate AS datesend, 
+		principal AS amount, charge FROM `kpmobiletransactions`.sendout',_monthdate,' 
+		WHERE YEAR(cancelleddate)=',_year,' AND cancelreason=''RETURN TO SENDER''
+	');												
+SET _datefrom = DATE_ADD(_datefrom, INTERVAL 1 DAY);                
+PREPARE StrSQL FROM @n_query;
+EXECUTE StrSQL;
+END WHILE;
+SET @sql3=CONCAT(
+	'SELECT id, controlno, sendersname, IF(datecancelled IS NULL,''0000-00-00 00:00:00'',
+		datecancelled) AS datecancelled, receiversname, kptn, 
+		IF(datesend IS NULL,''0000-00-00 00:00:00'',datesend) AS datesend, amount, charge 
+		FROM `kpmobile`.tmpwalletrts;'
+	);
+PREPARE gtpo3 FROM @sql3;
+EXECUTE gtpo3;
+END$$
+
+DELIMITER ;

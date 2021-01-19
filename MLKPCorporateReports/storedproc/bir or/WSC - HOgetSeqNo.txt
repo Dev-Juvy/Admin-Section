@@ -1,0 +1,15 @@
+DELIMITER $$
+
+USE `kpORNO`$$
+
+DROP PROCEDURE IF EXISTS `HOgetSeqNo`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetSeqNo`(IN accountCode VARCHAR(30))
+BEGIN
+SET @counter = 0;
+SET @n_query= CONCAT('SELECT  (@counter := @counter +1) AS counter,date(datecreated) as datecreated FROM (SELECT datecreated FROM `kpORNO`.`orDetails`  where accountid=''',accountCode,'''  GROUP BY DATE(datecreated))X ');	         
+PREPARE StrSQL FROM @n_query;
+EXECUTE StrSQL;
+END$$
+
+DELIMITER ;

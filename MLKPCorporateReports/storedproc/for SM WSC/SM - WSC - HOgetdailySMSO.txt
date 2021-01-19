@@ -1,0 +1,30 @@
+DELIMITER $$
+
+USE `kppartners`$$
+
+DROP PROCEDURE IF EXISTS `HOgetdailySMSO`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetdailySMSO`(IN sotable VARCHAR(4), IN accountCode VARCHAR(35),IN _year VARCHAR(6),IN _username VARCHAR(50),IN _role VARCHAR(50),IN _terminalid VARCHAR(50),IN _locationid VARCHAR(50))
+BEGIN
+SET @n_query= CONCAT('
+(SELECT 
+DISTINCT s.referenceno as txncode,IF(s.sendername IS NULL,CONCAT(s.senderlname,'', '' ,s.senderfname,'' '' ,s.sendermname),s.sendername) AS sender,
+IF(s.receivername IS NULL,CONCAT(s.receiverlname,'', '',s.receiverfname,'' '',s.receivermname),s.receivername) AS receiver,
+s.principal,s.charge as fee,(s.principal+s.charge) as total
+FROM kppartners.sendout',sotable,' s 
+INNER JOIN kppartnerstransactions.corporatesendouts so ON so.kptn=s.kptn
+INNER JOIN kppartners.sotxnref sf ON sf.accountcode=so.accountid AND sf.referenceno=so.referenceno
+WHERE s.accountcode=''',accountCode,''' AND YEAR(s.transdate)=',_year,'  AND sf.transactiontype IN (''3'')
+AND IF (''',_role,''' = ''KP-PARTNERTELLER'',s.operatorid = ''',_username,''', #and so.stationno=''',_terminalid,''',
+#IF (''',_role,''' = ''KP-SUPERVISOR'',s.operatorid = ''',_username,''' and so.sessionid=''',_locationid,''',1))
+IF (''',_role,''' = ''KP-SUPERVISOR'',so.sessionid=''',_locationid,''',1))
+AND (DATE(s.transdate)=DATE(s.cancelleddate) OR s.cancelleddate IS NULL OR s.cancelleddate=''0000-00-00 00:00:00'' OR s.cancelleddate='''' 
+OR IF(s.cancelreason=''CHANGE DETAILS'',DATE(s.transdate)<>DATE(s.cancelleddate),
+IF(s.cancelreason=''CANCEL'',IF(DATE(s.transdate)<>DATE(s.cancelleddate),DATE_FORMAT(s.transdate,''%m%d'')=',sotable,',1),0))) GROUP BY s.kptn)
+');
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

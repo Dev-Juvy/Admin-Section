@@ -1,0 +1,62 @@
+DELIMITER $$
+
+USE `kpmobile`$$
+
+DROP PROCEDURE IF EXISTS `HOgetWalletSOTransferWTR`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetWalletSOTransferWTR`(IN accountCode VARCHAR(30),IN _datefrom VARCHAR(15),IN _dateto VARCHAR(15))
+BEGIN
+DECLARE _monthdate VARCHAR(4);
+DECLARE _year VARCHAR(4);
+DROP  TEMPORARY  TABLE IF EXISTS `kpmobile`.tmpwallettxn;
+CREATE  TEMPORARY TABLE `kpmobile`.tmpwallettxn(kptn VARCHAR(100) ,activitytype VARCHAR(100),transdate VARCHAR(100) ,sendername VARCHAR(100) ,principal VARCHAR(100) ,
+currency VARCHAR(100),charge VARCHAR(100) ,sobranch VARCHAR(100) ,sobcode VARCHAR(100),sooperator VARCHAR(100),receivername VARCHAR(100) ,
+claimeddate VARCHAR(100),pobranch VARCHAR(100),pobcode VARCHAR(100),pooperator VARCHAR(100),sendercontactno VARCHAR(100),sendaddress VARCHAR(100),
+receivercontactno VARCHAR(100),idtype VARCHAR(100),receiveridno VARCHAR(100),receiveraddress VARCHAR(100),walletno VARCHAR(100),
+operatorid VARCHAR(100),custid VARCHAR(100),username VARCHAR(100),branchcode VARCHAR(100),zonecode VARCHAR(100) );
+WHILE DATE(_datefrom) <= DATE(_dateto) DO
+SET _monthdate = DATE_FORMAT(_datefrom,'%m%d');
+SET _year = DATE_FORMAT(_datefrom,'%Y');
+		
+SET @n_query= CONCAT('insert into `kpmobile`.tmpwallettxn(kptn ,activitytype,transdate ,sendername ,principal ,currency,charge ,sobranch ,
+sobcode,sooperator,receivername ,claimeddate,pobranch,pobcode,pooperator,sendercontactno,sendaddress,receivercontactno,idtype,receiveridno,
+receiveraddress,walletno,operatorid,custid,username,branchcode,zonecode)'
+'SELECT kptn ,activitytype,transdate ,sendername ,principal ,currency,charge ,sobranch ,sobcode,sooperator,receivername ,claimeddate,pobranch,
+pobcode,pooperator,sendercontactno,sendaddress,receivercontactno,idtype,receiveridno,receiveraddress,
+walletno,operatorid,custid,username,branchcode,zonecode
+FROM (SELECT 
+kptnno AS kptn ,''TRANSFER'' AS activitytype,sodate AS transdate ,sendername ,principal ,currency,servicecharge AS charge ,
+''WALLET'' AS sobranch ,'''' AS sobcode,'''' AS sooperator,receivername ,claimeddate,'''' AS pobranch,'''' AS pobcode,'''' AS pooperator,
+sendercontactno,senderstreet AS sendaddress,receivercontactno,idtype,'''' AS receiveridno,receiverstreet AS receiveraddress,
+m.walletno,operatorid,s.custid,username,branchcode,zonecode
+FROM `kpmobiletransactions`. payout',_monthdate,' s   
+INNER JOIN `kpmobile`.`mobileaccounts` m ON m.username = s.operatorid
+WHERE s.kptnno LIKE ''%mlw%'' and IF((SELECT kptn FROM `KPMobileExpress`.`MLExpressTransHistory` WHERE kptn=s.kptnno LIMIT 1) IS NOT NULL,0,1)  
+AND YEAR(s.claimeddate)=',_year,' AND (cancelledreason NOT IN ('''',''Request FOR CHANGE'',''Cancel Sendout'') OR cancelledreason IS NULL) AND receivername!=sendername 
+UNION ALL
+SELECT 
+kptnno AS kptn ,''WALLET SENDOUT'' AS activitytype,sodate AS transdate ,sendername ,principal ,currency,servicecharge AS charge ,
+''WALLET'' AS sobranch ,m.walletno AS sobcode,'''' AS sooperator,receivername ,claimeddate,'''' AS pobranch,'''' AS pobcode,'''' AS pooperator,
+sendercontactno,senderstreet AS sendaddress,receivercontactno,idtype,'''' AS receiveridno,receiverstreet AS receiveraddress,
+m.walletno AS walletno,operatorid,p.custid,'''' AS username,branchcode,zonecode
+FROM `kpmobiletransactions`.payout',_monthdate,' p
+left join `kpmobile`.mobileaccounts m on m.username=p.sooperator
+WHERE s.kptnno LIKE ''%mlw%'' and controlno  LIKE ''%mp%'' AND kptnno LIKE ''%mlw%''  AND cancelleddate IS NULL
+AND IF((SELECT username FROM `kpmobile`.mobileaccounts WHERE username=operatorid LIMIT 1) IS NOT NULL,0,1)
+AND YEAR(p.claimeddate)=',_year,'
+)X ORDER BY activitytype,claimeddate ASC;
+');													
+SET _datefrom = DATE_ADD(_datefrom, INTERVAL 1 DAY);                
+PREPARE StrSQL FROM @n_query;
+EXECUTE StrSQL;
+END WHILE;
+SET @sql3=CONCAT('select kptn ,activitytype,if(transdate is null,''0000-00-00 00:00:00'',transdate) as transdate ,sendername ,principal ,
+currency,charge ,sobranch ,sobcode,sooperator,receivername ,if(claimeddate is null,''0000-00-00 00:00:00'',claimeddate) as claimeddate,
+pobranch,pobcode,pooperator,sendercontactno,sendaddress,receivercontactno,idtype,receiveridno,
+receiveraddress,walletno,operatorid,custid,username,branchcode,zonecode
+from `kpmobile`.tmpwallettxn; ');
+PREPARE gtpo3 FROM @sql3;
+EXECUTE gtpo3;
+END$$
+
+DELIMITER ;

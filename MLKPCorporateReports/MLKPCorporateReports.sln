@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "MLKPCorporateReports", ".", "{4F5B538B-0EB8-4991-AE08-90F83E7D4153}"
+	ProjectSection(WebsiteProperties) = preProject
+		TargetFramework = "3.5"
+		Debug.AspNetCompiler.VirtualPath = "/MLKPCorporateReports"
+		Debug.AspNetCompiler.PhysicalPath = "..\..\..\..\Desktop\KP_TASK\2013-02-05MLKPCorpReports\MLKPCorporateReports\"
+		Debug.AspNetCompiler.TargetPath = "PrecompiledWeb\MLKPCorporateReports\"
+		Debug.AspNetCompiler.Updateable = "true"
+		Debug.AspNetCompiler.ForceOverwrite = "true"
+		Debug.AspNetCompiler.FixedNames = "false"
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.VirtualPath = "/MLKPCorporateReports"
+		Release.AspNetCompiler.PhysicalPath = "..\..\..\..\Desktop\KP_TASK\2013-02-05MLKPCorpReports\MLKPCorporateReports\"
+		Release.AspNetCompiler.TargetPath = "PrecompiledWeb\MLKPCorporateReports\"
+		Release.AspNetCompiler.Updateable = "true"
+		Release.AspNetCompiler.ForceOverwrite = "true"
+		Release.AspNetCompiler.FixedNames = "false"
+		Release.AspNetCompiler.Debug = "False"
+		VWDPort = "57134"
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|.NET = Debug|.NET
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4F5B538B-0EB8-4991-AE08-90F83E7D4153}.Debug|.NET.ActiveCfg = Debug|.NET
+		{4F5B538B-0EB8-4991-AE08-90F83E7D4153}.Debug|.NET.Build.0 = Debug|.NET
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,53 @@
+
+
+USE `kpadminpartners`;
+
+/* Procedure structure for procedure `HOcorporate_fileupload` */
+
+DROP PROCEDURE IF EXISTS  `HOcorporate_fileupload` ;
+
+DELIMITER $$
+
+CREATE  PROCEDURE `HOcorporate_fileupload`(IN accountid VARCHAR(20), IN _userid VARCHAR(100))
+BEGIN
+	IF accountid = '' THEN
+		SET @query= CONCAT('SELECT al.accountname ,al.accountid,i.integrationtype FROM kpadminpartners.accountlist al 
+		INNER JOIN `kpadminpartners`.`accountintegration` i ON i.accountid=al.accountid
+		WHERE al.isactive = 1 and `integrationtype` IN (''2'',''4'') AND AccountType NOT IN (''MLBPP'') GROUP BY accountname;');
+	ELSE
+		SET @query= CONCAT('SELECT al.accountname ,al.accountid,i.integrationtype FROM kpadminpartners.accountlist al 
+		INNER JOIN `kpadminpartners`.`accountintegration` i ON i.accountid=al.accountid
+		WHERE al.isactive = 1 and `integrationtype` IN (''2'',''4'') AND AccountType NOT IN (''MLBPP'') and al.accountid = ''',accountid,''' 
+		and if((SELECT userid FROM `kpadminpartners`.`partnersusers` WHERE accountid=''',accountid,''' and userid=''',_userid,''') is not null,1,0)
+		GROUP BY accountname;');
+	END IF;
+	PREPARE StrSQL FROM @query;
+	EXECUTE StrSQL;
+	DEALLOCATE PREPARE StrSQL;
+ END $$
+DELIMITER ;
+
+/* Procedure structure for procedure `HOcorporate_PaymentSolution` */
+
+DROP PROCEDURE IF EXISTS  `HOcorporate_PaymentSolution` ;
+
+DELIMITER $$
+
+CREATE  PROCEDURE `HOcorporate_PaymentSolution`(IN accountid VARCHAR(20), IN _userid VARCHAR(100))
+BEGIN
+	IF accountid = '' THEN
+		SET @query= CONCAT('SELECT al.accountname ,al.accountid,i.integrationtype FROM kpadminpartners.accountlist al 
+		INNER JOIN `kpadminpartners`.`accountintegration` i ON i.accountid=al.accountid
+		WHERE al.isactive = 1 and `integrationtype` IN (''2'',''4'') AND accountType in (''MLPSP'') GROUP BY accountname;');
+	ELSE
+		SET @query= CONCAT('SELECT al.accountname ,al.accountid,i.integrationtype FROM kpadminpartners.accountlist al 
+		INNER JOIN `kpadminpartners`.`accountintegration` i ON i.accountid=al.accountid
+		WHERE al.isactive = 1 and `integrationtype` IN (''2'',''4'') AND accountType in (''MLPSP'') and al.accountid = ''',accountid,''' 
+		and if((SELECT userid FROM `kpadminpartners`.`partnersusers` WHERE accountid=''',accountid,''' and userid=''',_userid,''') is not null,1,0)
+		GROUP BY accountname;');
+	END IF;
+	PREPARE StrSQL FROM @query;
+	EXECUTE StrSQL;
+	DEALLOCATE PREPARE StrSQL;
+ END $$
+DELIMITER ;

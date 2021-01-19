@@ -1,0 +1,67 @@
+DELIMITER $$
+
+USE `kppartners`$$
+
+DROP PROCEDURE IF EXISTS `HOgetcancelledpayoutPaypal`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetcancelledpayoutPaypal`(IN potable VARCHAR(4), IN accountCode VARCHAR(30),IN _year VARCHAR(5))
+BEGIN
+SET @n_query= CONCAT('
+		SELECT DISTINCT
+IF(po.oldkptn IS NULL,po.kptn,po.oldkptn) AS kptn,IF(po.referenceno IS NULL,po.oldkptn,po.referenceno) AS referenceno,
+s.transdate AS sodate,po.sendercountry,po.sendername,po.senderaddress,po.cancelleddate AS claimeddate,
+po.receivername,po.receiveraddress,receivercontactno,idtype,idno,po.Currency,
+po.principal,po.branchcode,IF(po.isremote=1,po.remotezonecode,po.zonecode) AS zonecode,
+(SELECT b.branchname FROM kpusers.branches b WHERE b.branchcode=po.branchcode AND b.zonecode=IF(po.isremote=1,po.remotezonecode,po.zonecode) LIMIT 1) AS branchname,
+(SELECT b.address FROM kpusers.branches b WHERE b.branchcode=po.branchcode AND b.zonecode=IF(po.isremote=1,po.remotezonecode,po.zonecode) LIMIT 1) AS branchaddress,
+(
+IF (
+(SELECT CONCAT(pu.lastname,'''', '''',pu.firstname,'''' '''',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu WHERE pu.userid=IF(po.isremote,po.remoteoperatorid,po.operatorid) LIMIT 1) IS NULL,
+IF( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin= IF(po.isremote,po.remoteoperatorid,po.operatorid)  LIMIT 1) IS NULL,
+    (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(po.isremote,po.remoteoperatorid,po.operatorid)  LIMIT 1),
+    (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(po.isremote,po.remoteoperatorid,po.operatorid)  LIMIT 1)),
+(SELECT CONCAT(pu.lastname,'''', '''',pu.firstname,'''' '''',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu WHERE pu.userid=IF(po.isremote,po.remoteoperatorid,po.operatorid)  LIMIT 1)
+)
+) AS Operator,
+IF(po.cancelledtype=''Payout'' ,''WRONG PAYOUT'',po.cancelledreason) AS cancelreason,po.controlno,s.transdate AS transdate,
+(servicecharge + CancelledCustCharge + CancelledEmpCharge) AS servicecharge,s.chargeamount AS charge,
+IF(po.isremote,po.remoteoperatorid,po.operatorid) AS operatorid
+FROM kppartners.payout',potable,' po
+INNER JOIN  kppartnerstransactions.corporatesendouts s ON s.kptn=IF(po.oldkptn IS NULL,po.kptn,po.oldkptn)
+INNER JOIN kppartners.potxnref sf ON sf.accountcode=po.accountcode AND sf.referenceno=po.referenceno
+WHERE  po.cancelleddate IS NOT NULL AND po.cancelleddate<>''0000-00-00 00:00:00''
+AND  po.cancelledtype=''Payout'' AND po.accountcode=''',accountCode,''' 
+AND sf.transactiontype IN (''1'')
+AND YEAR(po.claimeddate)=',_year,' AND DATE_FORMAT(po.cancelleddate,''%m%d'')=',potable,' AND DATE(po.cancelleddate)=DATE(po.cancelleddate)
+UNION
+SELECT DISTINCT
+cpo.kptn,cpo.referenceno,s.transdate AS sodate,'''' AS sendercountry,CONCAT(po.senderlname,'', '',po.senderfname,'' '',po.sendermname) AS sendername,
+'''' AS senderaddress,cpo.transdate AS claimeddate,CONCAT(po.receiverlname,'', '',po.receiverfname,'' '',po.receivermname) AS receivername,
+'''' AS receiveraddress,'''' AS receivercontactno,'''' AS idtype,'''' AS idno,po.currency,po.principal,
+IF(isremotecanc=1,cancbyremotebranchcode,cancbybranchcode) AS branchcode,IF(isremotecanc=1,cancbyremotezonecode,cancbybyzonecode) AS zonecode,
+(SELECT b.branchname FROM kpusers.branches b WHERE b.branchcode=IF(isremotecanc=1,cancbyremotebranchcode,cancbybranchcode) AND b.zonecode=IF(isremotecanc=1,cancbyremotezonecode,cancbybyzonecode) LIMIT 1) AS branchname,
+(SELECT b.address FROM kpusers.branches b WHERE b.branchcode=IF(isremotecanc=1,cancbyremotebranchcode,cancbybranchcode) AND b.zonecode=IF(isremotecanc=1,cancbyremotezonecode,cancbybyzonecode) LIMIT 1)  AS branchaddress,
+(
+IF (
+(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu WHERE pu.userid=IF(po.isremote=1,po.remoteoperatorid,po.OperatorID) LIMIT 1) IS NULL,
+IF( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(po.isremote=1,po.remoteoperatorid,po.OperatorID)  LIMIT 1) IS NULL,
+			(SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(po.isremote=1,po.remoteoperatorid,po.OperatorID)  LIMIT 1),
+			(SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=IF(po.isremote=1,po.remoteoperatorid,po.OperatorID)  LIMIT 1)),
+(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu WHERE pu.userid=IF(po.isremote=1,po.remoteoperatorid,po.OperatorID) LIMIT 1) 
+)
+) AS Operator,
+IF(cpo.cancelreason <> ''Wrong Payout'',''Wrong Payout'',cpo.cancelreason) AS cancelreason,po.controlno,s.transdate,cpo.cancelcharge AS servicecharge,s.chargeamount AS charge,
+IF(po.isremote=1,po.remoteoperatorid,po.OperatorID) AS operatorid
+FROM kppartnerstransactions.`corporatecancelledPO` cpo
+INNER JOIN  kppartnerstransactions.corporatesendouts s ON s.kptn=cpo.kptn
+INNER JOIN kppartnerstransactions.corporatepayouts po ON po.kptn=s.kptn
+INNER JOIN kppartners.potxnref sf ON sf.accountcode=cpo.accountid AND sf.referenceno=IF(cpo.referenceno='''',cpo.kptn,cpo.referenceno)
+WHERE   YEAR(cpo.transdate)=',_year,' and cpo.accountid=''',accountCode,''' 
+AND DATE_FORMAT(cpo.transdate,''%m%d'')=',potable,' AND DATE(cpo.transdate)<>DATE(po.transdate) AND sf.transactiontype IN (''1'')
+');													
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

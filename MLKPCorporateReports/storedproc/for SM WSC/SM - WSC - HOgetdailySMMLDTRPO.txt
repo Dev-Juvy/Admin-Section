@@ -1,0 +1,24 @@
+DELIMITER $$
+
+USE `kppartners`$$
+
+DROP PROCEDURE IF EXISTS `HOgetdailySMMLDTRPO`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetdailySMMLDTRPO`(IN potable VARCHAR(4), IN accountCode VARCHAR(35),IN _year VARCHAR(6))
+BEGIN
+SET @n_query= CONCAT('
+SELECT 
+DISTINCT p.claimeddate as transdate,IF(oldkptn IS NULL,p.kptn,oldkptn) AS txncode,p.sendername AS sender,p.receivername AS receiver,
+p.principal,(p.servicecharge) AS fee,(p.principal+p.servicecharge) as total
+FROM kppartners.payout',potable,'  p
+INNER JOIN kppartners.potxnref sf ON sf.accountcode=p.accountcode AND sf.referenceno=p.referenceno
+WHERE p.accountcode=''',accountCode,'''  
+AND YEAR(p.claimeddate)=',_year,'  AND sf.transactiontype IN (''3'')
+GROUP BY IF(oldkptn IS NULL,p.kptn,oldkptn);
+');
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

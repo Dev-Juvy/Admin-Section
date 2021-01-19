@@ -1,0 +1,942 @@
+
+
+
+body
+{
+	/*background-image:url('../Images/main1.jpg');*/
+	/*linear-gradient(90deg,black,white); */
+	background-image:url('../Images/main1.jpg');
+	/*linear-gradient(90deg,black,white); */
+	/*margin: 0;
+	padding: 0;*/
+    font-family: Arial;
+    margin-top:25px; 
+   
+}
+/*
+div#outerDiv{
+	width: 950px;
+	margin: 0 auto;
+
+}
+*/
+div#header
+{
+	background-image:url('../images/MLKP_Logo2.PNG');
+	height: 50px;
+	background-repeat: no-repeat;
+	margin-left: 5px;
+	
+	/*background-position:center;*/
+	/* box-shadow: 10px 10px 5px #888888;  
+  
+    margin-top:5px;
+    width:950px;
+    min-width:949px;*/
+	
+
+      margin-right: auto;   width: 36.2em;
+
+}
+
+div#menuHolder
+{
+    width: 99%;
+    height: 9px;
+    padding-top: 3px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 0;
+    color: #7A0000;
+}
+
+div#HomeM{
+	color: #ffffff;
+	font-family: "Arial";
+	font-size:1em;
+	float: left;
+	padding-top:5px;
+	height: 46px;
+	width: 85px;
+	padding-left: 10px;
+	padding-right: 0;
+	padding-bottom: 0;
+}
+
+div#Billspayment{
+	color: #ffffff;
+	padding: 5px 0;
+	font-family: "Arial";
+	font-size: 1em;
+	float: left;
+	float:inherit left;
+	margin-left:1%;
+    width: 133px;
+    margin-top:25px;
+	height: 3px;
+}
+
+
+
+
+div#content
+{
+	/*background: #E4E6E7;*/
+	/*border-radius: 5px;*/
+	/*box-shadow: 10px 10px 5px #888888;*/
+	padding:5px 0 5px 0;
+	width: 584px;
+	height:465px;
+	min-height: 250px;
+	margin: 7px auto 0 auto;
+	/* opacity:0.1; */
+}
+div#content2
+{
+   padding:5px 0 5px 0;
+	width: 950px;
+	height:450px;
+	min-height: 250px;
+	margin: 7px auto 0 auto;
+	/* opacity:0.1; */
+     /*opacity: 0.5;*/
+ /* filter: alpha(opacity = 50);*/
+}
+div#content3
+{
+        background:#000000;
+        padding: 5px 0 5px 0;
+        width:250px;
+        height:inherit; 
+        
+ }
+
+/*
+div#footerDiv{
+	background-color: 	#660000;
+	height: 30px;
+	margin-bottom: 5%;
+	width: 110%;
+
+    padding-top: 3px;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 0;
+}*/
+div#Home2{
+
+}
+
+/*
+div#labelFooter{
+	width: 1271px;
+	height: 22px;
+	margin: 0 auto;
+	float: left;	
+	top: -20px;
+	left: 1px;
+	position:inherit;
+}*/
+
+div#leftLabel{
+	color: #ffffff;
+	padding: 5px 0 0 5px;
+	font-family: "Arial";
+	font-size:1em;	
+     left:5px;
+    width: 1259px;
+    float: left;
+    position: relative;
+	top: -4px;
+	height: 22px;
+}
+div#RightLabel
+{
+	position: relative;
+	color: #ffffff;
+	padding: 5px 0 0 0px;
+	font-family: "Arial";
+	font-size:1em;
+    float: Right;
+	width: 482px;
+	top: -26px;
+	right: 2px;
+	text-align: right;
+    height: 21px;
+}
+
+div#rightLabel{
+	color: #ffffff;
+	padding: 20px 0 5px 0;
+	font-family: "Arial";
+	font-size: 1em;
+	float: right;
+	width: 64px;
+}
+
+.column{ -webkit-border-top-left-radius:12px; -webkit-border-top-right-radius:12px; -webkit-border-bottom-right-radius:12px; -webkit-border-bottom-left-radius:12px;
+	background-color: #E4E6E7;
+	width: 180px; 
+	height: inherit;
+	float: left; 
+	padding: 15px 5px 0 5px;
+}
+
+.column2{ -webkit-border-top-left-radius:12px; -webkit-border-top-right-radius:12px; -webkit-border-bottom-right-radius:12px; -webkit-border-bottom-left-radius:12px;
+background-color: #E4E6E7; 
+width:741px; 
+height: inherit;
+min-height: 650px;
+float: left;
+padding: 0 5px 0 0;
+}
+
+#spacer
+{
+	width: 5px;
+	height: 1px;
+	float: left;
+}
+
+div#greetingDiv
+{ 
+
+	width: 179px;
+	height: 50px;
+}
+
+div#logout
+{
+	padding-top: 15px; 
+	margin: 0 auto; 
+	text-align: center; 
+}
+
+
+div#logout a:link, a:visited
+{
+	float: left;
+	padding-left: 125px;
+	font-size: 12px; 
+	font-family: Arial;
+	text-decoration: none;
+	color: #ffffff;
+}
+
+div#logout a:hover, a:active
+{
+	float: left;
+	padding-left: 125px;
+	font-size: .8em; 
+	font-weight: bold; 
+	font-family: Arial;
+	text-decoration: underline;
+	color: #ffffff;
+	
+}
+/*==========================================================  for drop down============================================*/
+
+ul									{ list-style: none; 
+ position:absolute;
+ text-align: right;
+float:right;
+ margin-right:2%;
+ padding-right:2%;
+	top: 13px;
+	left: -41px;
+	width: 119px;
+	height: 19px;
+	right: -22px;
+	margin-top: 0px;
+}
+
+
+/* 
+	LEVEL ONE
+*/
+ul.dropdown                          
+{ 
+	
+	float:right;
+    margin-right:2%;
+    padding-right:2%;
+    width: 117px;
+   /* top:-40%;*/
+    right:-4%;
+	/*width: 17px;
+	text-align: right;
+	padding:right;
+	margin-right:2%; */
+	position:relative;
+    top: -11px;
+    height: 39px;
+	margin-bottom: 19px;
+	text-decoration:none;
+}
+ul.dropdown li 
+                     
+{  
+
+	font-weight: bold; 
+    float: right; 
+    font-size:15px;
+    width: 118px;
+    height: 17px;
+    
+    top:-90%;
+    right: 0%;
+}
+/*ul.dropdown li                      { font-weight: bold; float: left; font-size:20px; zoom:1.1;  }
+ul.dropdown a:hover		            { color: #000; }
+ul.dropdown a:active                { color: #ffa500; }
+ul.dropdown li a                    { display: block; padding:8px 8px; border-right: 1px solid #333;
+	 								  color: #222; }
+ul.dropdown li:last-child a         { border-right: none; } 
+ul.dropdown li.hover,
+ul.dropdown li:hover                {  color: black; position: relative; }
+ul.dropdown li.hover a              { color: black; }*/
+
+
+
+ul.dropdown a:hover		            { color: #660000;padding:right; width: 100px; margin-right:2%;}
+ul.dropdown a:active                { color: #660000; padding:right;width: 100px;margin-right:2%;}
+ul.dropdown li a                    { display: block; padding:right; border-right: 1px solid #660000;
+                                         margin-right:2%; float:left ;
+	 								  color: #660000; }
+ul.dropdown li:last-child a         { border-right: none; } /* Doesn't work in IE */
+ul.dropdown li.hover,
+ul.dropdown li:hover                {  color: #660000; position: relative; }
+ul.dropdown li.hover a              { color: #660000; }
+
+
+/* 
+	LEVEL TWO
+*/
+ul.dropdown ul 						{     width: 33%; 
+visibility: hidden; position:relative; top: -75%; 
+right:-1335%;
+    height: 51px;
+}
+ul.dropdown ul li 					{ font-weight: normal; height:19px;  
+background-color: #660000; color: #000; 
+									  border-bottom: 1px solid  #660000; float:right;
+}
+									  
+                                    /* IE 6 & 7 Needs Inline Block */
+ul.dropdown ul li a					{ border-left: none; width: 20%; display: inline-block; } 
+
+
+/*
+
+.shadowed {
+background-color: #fff;
+zoom: 1;
+filter: progid:DXImageTransform.Microsoft.Shadow(color='#969696', Direction=135, Strength=3);
+
+
+}*/
+
+/* =========================================================  other css  =======================================================================
+
+/*Credits: Dynamic Drive CSS Library */
+/*URL: http://www.dynamicdrive.com/style/ */
+
+.suckertreemenu ul{
+margin: 0;
+padding: 0;
+list-style-type: none;
+background-color: rgb(45,45,45);
+}
+
+/*Top level list items*/
+.suckertreemenu ul li
+{
+    position: relative;
+    display: inline;
+    float: left;
+    background-color: rgb(45,45,45);
+    color: #FFFFFF;
+    font-family: Arial;
+}
+
+/*Top level menu link items style*/
+.suckertreemenu ul li a
+{
+    border-left-width: 0;
+    border-width: 1px;
+    border-color: #FFFFFF;
+    border-style: none none none solid;
+    display: block;
+    /*_width: 100px; /*Width of top level menu link items*/
+    padding: 1px 8px;
+    text-decoration: none;
+    color: #FFFFFF;
+    font-family: Arial;
+    font-size: 12px;
+    background-color: rgb(45,45,45);
+}
+	
+/*1st sub level menu*/
+.suckertreemenu ul li ul
+{
+    left: 0;
+    position: absolute;
+    top: 1em; /* no need to change, as true value set by script */
+    display: block;
+    visibility: hidden;
+    color: #FFFFFF;
+    background-color: rgb(45,45,45);
+}
+
+/*Sub level menu list items (undo style from Top level List Items)*/
+.suckertreemenu ul li ul li
+{
+    display: list-item;
+    float: none;
+    color: #FFFFFF;
+    background-color: rgb(45,45,45);
+}
+
+/*All subsequent sub menu levels offset after 1st level sub menu */
+.suckertreemenu ul li ul li ul
+{
+    /*left: 159px; /* no need to change, as true value set by script */
+    top: 0;
+    background-color: rgb(45,45,45);
+}
+
+/* Sub level menu links style */
+.suckertreemenu ul li ul li a
+{
+    display: block;
+    /*width: 140px; /*width of sub menu levels*/
+    color: #FFFFFF;
+    text-decoration: none;
+    padding: 1px 5px;
+    border: 1px solid #ccc;
+    background-color: rgb(45,45,45);
+}
+
+.suckertreemenu ul li a:hover
+{
+    background-color: rgb(45,45,45);
+    color: rgb(253,160,91);
+}
+
+
+/*Background image for top level menu list links */
+.suckertreemenu .mainfoldericon{
+background-color: rgb(45,45,45);
+}
+
+/*Background image for subsequent level menu list links */
+.suckertreemenu .subfoldericon{
+background-color: rgb(45,45,45);
+}
+
+* html p#iepara{ /*For a paragraph (if any) that immediately follows suckertree menu, add 1em top spacing between the two in IE*/
+padding-top: 1em;
+}
+	
+/* Holly Hack for IE \*/
+* html .suckertreemenu ul li { float: left; height: 1%; }
+* html .suckertreemenu ul li a { height: 1%; }
+* html .suckertreemenu ul li ul li { float: left;}
+/* End */
+
+.watermarked { color:Silver ;}
+
+.watermarkedbackground
+{
+    background-color: #EDEAE1;
+    font-family: Arial;
+    font-size: 12px;
+    text-align: left;
+    text-transform:uppercase ;
+}
+.watermarkedbackgroundRight
+{
+    background-color: #EDEAE1;
+    font-family: Arial;
+    font-size: 12px;
+    text-align: right;
+    text-transform:uppercase ;
+}
+ .txtUppercase 
+ { 
+   text-transform:uppercase ;
+   font-family: Arial;
+    font-size: 12px;
+    margin-right:5px; 
+   } 
+
+/*modal pop  up*/
+.ModalStyle
+    {
+        background-color: #CCBFBF;
+       /* filter: alpha(opacity=50);*/
+       visibility:visible;
+    }
+
+    .drag
+    {
+    	background-image:url('../images/modalbg.png');
+        background-repeat:repeat;        
+        width: 500px;
+        padding: 10px 10px 10px 10px;      
+    }
+    
+    .drag > div
+    
+	{
+		background-color:White;
+		padding: 10px 5px 15px 5px;
+		border: 1px solid rgb(100,135,220);
+		background-repeat: repeat;
+		
+	}
+
+    .gridContainer
+    {     width:98%;
+  height:250px;
+ overflow:scroll;   
+    }
+    .closeContainer
+    {
+        height: 20px;
+        background: rgb(100,135,220);       
+    }
+    .closeButton
+    {
+        padding: auto auto 5px auto;
+        float: right;
+    }
+    .GVtxtSearch
+    {
+        padding-top: 10px;
+        padding-left: 5px;
+        padding-bottom: 1px;
+        height: 25px;
+        width:393px;
+        border-bottom: solid 5px rgb(100,135,220);
+       
+    }
+    .GVData
+    {
+        padding-top: 5px;
+        padding-left: 5px;
+        height: 250px;        
+        padding-bottom: 3px;
+        overflow: auto;
+    }
+    
+    .GVDataMaintenance
+    {
+        padding-top: 5px;
+        /*height: 400px;*/
+        padding-bottom: 3px;
+        overflow: auto;
+        width:670px;
+        padding-left:2px;
+ }
+    
+.searchArea
+{
+padding-bottom: 10px;
+height: 25px;
+border-bottom: solid 5px rgb(100,135,220);
+width: 675px;
+}
+	
+.searchTable
+{
+font-size: x-small;
+margin-bottom: 25px;
+}
+	
+.SearchTxtBox 
+{
+width: 350px;
+background-color: rgb(240,240,240);	
+}
+
+.SearchLabel
+{
+width:130px;
+} 
+	
+.EntryArea
+{
+padding-bottom: 10px;
+height: 25px;
+border-bottom: solid 5px rgb(100,135,220);
+width: 400px;
+}
+	
+.cajasombra
+{
+background: rgba(0,0,0,0.7);
+border: 1px solid rgba(255,255,255,0.3);
+/*border-radius: 12px;*/
+-moz-border-radius: 12px;
+/*box-shadow:0px 5px 10px rgba(0,0,0,0.7);*/
+-webkit-box-shadow:0px 5px 10px rgba(0,0,0,0.7);
+-moz-box-shadow:0px 5px 10px rgba(0,0,0,0.7);
+}
+	
+.srcBtn
+{
+color: #FFFFFF;
+background: transparent url('../images/btnSearch.png' ) no-repeat;
+width: 20px;
+font-size: 11px;
+font-style: normal;
+font-family: Arial, Helvetica, sans-serif;
+height: 25px;	
+text-align: center;
+vertical-align: middle;
+border-style:none;
+	
+} 
+
+.srcBtn:hover
+{
+color: #000000;
+}
+.focus {
+border: 2px solid #AA88FF;
+background-color: #FFEEAA;
+}
+#test
+{
+font-family: Calibri; 
+font-size: 19px; 
+font-weight: bold; 
+padding-left: 50px; 
+color: #0000FF;
+margin: 0;
+}
+
+div#mlkpUserInfo
+{
+position:relative;  
+float: right;
+height: 20px;
+/*clear: left;*/
+text-align: right;	
+margin-right:2%; 
+color: #0000FF;
+   /* left: 634px;*/
+    /*width: 1058px;*/
+	margin-top: 0px;
+	top:-40px;
+	left:15px;
+}
+
+
+
+.buttonLogout
+{
+background-color: #2d2d2d;
+color: #0066FF;
+cursor: pointer;
+	margin-top: 0px;
+	margin-left: 1px;
+    text-align: left;
+}
+
+.HomeM
+{
+background-color: #2d2d2d;
+color: #FFFFFF;
+cursor: pointer;
+margin-top:25px;
+
+}
+ .bill
+ {
+background-color: #2d2d2d;
+color: #FFFFFF;
+cursor: pointer;
+ }
+
+ .style3
+ {
+ color: #FFFFFF;
+ font-weight: 700;
+ right:10px; 
+ }
+ 
+ 
+ /*	THISIS FOR THE DROPDOWN OF REPORTS */
+ 
+#Reports1
+{
+	position:absolute;
+	top:-10px;
+	width:auto;
+	clear:both;
+	left:220px;
+}
+ #Reports2
+{
+	position:absolute;
+	top:-10px;
+	width:auto;
+	clear:both;
+	left:320px;
+}
+#Reports3    /*-- edited */
+{
+	position:absolute;
+	top:-10px;
+	width:auto;
+	clear:both;
+	left:440px;
+}
+#Reports4    /*-- edited */
+{
+	position:absolute;
+	top:-10px;
+	width:auto;
+	clear:both;
+	left:550px;
+}
+#Reports5    /*-- edited */
+{
+	position:absolute;
+	top:-10px;
+	width:auto;
+	clear:both;
+	left:640px;
+}
+#Reports6    /*-- edited */
+{
+	position:absolute;
+	top:-10px;
+	width:auto;
+	clear:both;
+	left:800px;
+}
+ 
+#Reports li a  /*This changes the style of the REPORT TITLE links*/
+{
+            display: block;
+            background-color:#660000;
+			padding:2px 0px 0px 10px;
+            color: white;
+            left:300px;
+            text-decoration: none;
+            font-weight: normal;
+            text-align:left;
+            width:200px;
+}
+#Reports li a.Reportslits  /*This changes the style of the REPORTSLINKS links*/
+{
+			display: block;
+			color: white;
+            text-decoration: none;
+            font-weight: normal;
+            text-align:left;
+            
+}
+
+#Reports li a:hover  /*This changes the style of the REPORT TITLE when hovered*/
+{			
+            background-color: #660000;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            text-align:left;        
+}
+ 
+#Reports li a:hover.Reportslits  /*This changes the style of the REPORTSLINKS links when hovered*/
+{
+            display: block;
+            text-align:left;
+            /*background-color:white;*/
+         
+}
+ 
+#Reports ul  /*This tells the subnavigation pages not to show*/
+{
+            display: none;
+            text-align:left;
+            position: relative;
+            padding: 0;
+            margin: 0;
+}
+ 
+#Reports li:hover > ul  /*This tells the REPORT LISTS pages to show when hovered and adds some style*/
+{
+
+            display: block;
+            top: 1px;
+            left:20px;
+           
+            padding: 10px 20px;         
+            text-align:left;
+            font-family:Segoe UI;
+            font-size: 12px;
+			padding: 2px;
+			line-height:30px;         
+}
+ 
+#Reports li  /*This makes a horizontal menu and removes list styling*/
+{
+            margin: 0px;
+            padding: 1px;
+            float: left;
+            position:relative;
+            list-style: none;
+            text-align:left;
+			top: 0px;
+			left: 6px;
+			width: 153px;
+}
+
+div#menuDiv{
+	background-color: #660000;
+	margin: 0 auto;	
+	width: 100%;
+    height: 30px;
+	position:relative;
+}
+
+div#menuTitle
+{
+	position: absolute;
+	background-color: #660000;
+	margin: 0 auto;
+	width: 17%;
+    height: 17px;
+    padding-left:3px;
+	top: 6px;
+	left:20px;
+}
+
+div#menuSeparator1st
+{
+	position: absolute;
+	margin: 0 auto;
+	width: 27em;
+    height: 26px;
+    padding-left:3px;
+	top: 4px;
+	left:220px;
+
+}
+div#menuSeparatorexpress
+{
+	position: absolute;
+	margin: 0 auto;
+	width: 27em;
+    height: 26px;
+    padding-left:3px;
+	top: 4px;
+	left:320px;
+
+}
+div#menuSeparatorwallet   /*-- edited --*/
+{
+	position: absolute;
+	margin: 0 auto;
+	width: 27em;
+    height: 26px;
+    padding-left:3px;
+	top: 4px;
+	left:440px;
+
+}
+div#menuSeparatorMlonline {
+    position: absolute;
+    margin: 0 auto;
+    width: 27em;
+    height: 26px;
+    padding-left: 3px;
+    top: 4px;
+    left: 550px;
+}
+div#menuSeparatorMlWalletEmp {
+    position: absolute;
+    margin: 0 auto;
+    width: 27em;
+    height: 26px;
+    padding-left: 3px;
+    top: 4px;
+    left: 640px;
+}
+div#menuSepSetcollection {
+    position: absolute;
+    margin: 0 auto;
+    width: 27em;
+    height: 26px;
+    padding-left: 3px;
+    top: 4px;
+    left: 800px;
+}
+div#menuSeparator2nd
+{
+	position: relative;
+	background-color: #660000;
+	margin: 0 auto;
+	width: 0.4em;
+    height: 17px;
+    padding-left:3px;
+	top: -49px;
+	left: -234px;
+}
+
+div#ReportsTitle
+{
+	position: relative;
+	background-color: #660000;
+	margin: 0 auto;
+	height: 22px;
+    width: 100px;
+	top: -30px;
+	left: -318px;
+}
+
+
+
+/*===========================================================
+FOOTER*/
+div#footerDiv{
+	background-color: #660000;
+	margin: 0 auto;	
+	width: 100%;
+    height: 30px;
+	position:relative;
+	font-weight:bold;
+}
+div#labelFooter{
+	width: 100%;
+	height: auto;	
+	top: -1px;
+	position:relative;	
+	font-family: "Arial";
+	font-size:12px;	
+}
+div#leftLabelf{
+	color: #ffffff;
+    width: 50%;
+    float: left;
+    position: relative;
+	height: auto;
+	text-align:left;
+	padding: 5px 10px 0 20px;
+}
+div#RightLabelf
+{
+	color: #ffffff;
+	padding-top:5px;
+	width: auto;
+    float: right;
+    position: relative;
+	height: auto;
+	text-align:right;
+	padding-right:20px;
+}
+/* END FOOTER
+===========================================================*/

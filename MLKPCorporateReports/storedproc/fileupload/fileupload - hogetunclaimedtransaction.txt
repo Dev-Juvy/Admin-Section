@@ -1,0 +1,84 @@
+
+
+USE `kppartners`;
+
+
+/* Procedure structure for procedure `hogetunclaimedtransaction` */
+
+DROP PROCEDURE IF EXISTS  `hogetunclaimedtransaction` ;
+
+DELIMITER $$
+
+CREATE  PROCEDURE `hogetunclaimedtransaction`(IN soTable VARCHAR(4), IN accountCode VARCHAR(30),IN _sodate VARCHAR(15),IN _txntype VARCHAR(50),IN _username VARCHAR(50),IN _role VARCHAR(50))
+BEGIN
+DECLARE txntype VARCHAR(100);
+DECLARE dbp_filter VARCHAR(200);
+IF _txntype = 'API'  THEN
+	SET txntype = 'sf.transactiontype IN (''1'')';
+ELSEIF _txntype = 'APIandWSC' OR _txntype = 'WSC'  THEN
+	SET txntype = 'sf.transactiontype IN (''3'')';
+ELSEIF _txntype = 'PARTNERS'  THEN
+	SET txntype = 'sf.transactiontype IN (''1'',''3'')';
+ELSEIF _txntype = 'PAYMENTSOLUTION' THEN
+	SET txntype = 'sf.transactiontype IN (''5'',''7'',''8'')';
+ELSEIF _txntype = 'FILEUPLOAD' THEN
+	SET txntype = 'sf.transactiontype IN (''2'',''4'')';
+END IF;
+IF accountCode = 'MLCIP130031' THEN
+	SET dbp_filter = ' DATE(s.transdate) NOT IN (''2014-03-15'',''2014-03-20'',''2014-03-23'',''2014-03-25'',''2014-04-02'',''2014-04-04'',''2014-04-06'',''2014-05-11'',''2014-05-13'' ) ';
+ELSE 
+	SET dbp_filter = ' 1 ';
+END IF;
+	/****
+	DROP TEMPORARY TABLE IF EXISTS unclaimereports;
+	CREATE TEMPORARY TABLE unclaimereports(
+	kptn VARCHAR(50),controlno VARCHAR(50),actions VARCHAR(30),txndate VARCHAR(50), sendername VARCHAR(150),
+	transdate VARCHAR(50),transtime VARCHAR(50),receivername VARCHAR(150),Receiver_Phone VARCHAR(20),
+	referenceno VARCHAR(50),Currency VARCHAR(5),principal DECIMAL(10,2),charge DECIMAL(10,2),branchcode VARCHAR(150),Operator VARCHAR(150), flag VARCHAR(30));
+	**/
+	
+	SET @query= CONCAT(
+	/*****
+	'INSERT INTO `kppartners`.unclaimereports(kptn,controlno,actions,txndate,sendername,transdate,transtime,receivername,Receiver_Phone,
+	referenceno,Currency,principal,charge,branchcode,Operator,flag)'
+	***************************/
+'
+select kptn,controlno,sendername,transdate,transtime as time,receivername,Receiver_Phone,
+	referenceno,Currency,principal,charge,branchcode,Operator,operatorid
+	from(
+SELECT  
+s.kptn, s.controlno,
+CONCAT(s.senderlname,'', '' ,s.senderfname,'' '' ,s.sendermname) AS sendername,
+IF(s.transdate IS NULL OR s.transdate='''' OR s.transdate=''0000-00-00 00:00:00'',''0000-00-00 00:00:00'',s.transdate) AS transdate,
+DATE_FORMAT(s.transdate,''%H:%i:%S'') AS transtime,
+CONCAT(s.receiverlname,'', '',s.receiverfname,'' '',s.receivermname)  AS receivername,
+''-'' AS Receiver_Phone,
+s.referenceno,s.Currency,s.principal,s.chargeamount AS charge,
+s.branchcode,operatorid,operatorid as  Operator
+FROM `kppartnerstransactions`.`corporatesendouts` s 
+INNER JOIN kppartners.sotxnref sf ON sf.accountcode=s.accountid AND sf.referenceno=if(s.referenceno='''' or s.referenceno is null,s.kptn,s.referenceno)
+WHERE date(s.transdate)<=''',_sodate,''' 
+AND ',dbp_filter,'
+#AND if( (SELECT kptnno FROM `kpadminpartnerslog`.`transactionslogs` WHERE kptnno=s.kptn LIMIT 1)=s.kptn,1,0 )
+AND s.accountid = ''',accountCode,''' 
+and IF (''',_role,''' = ''KP-PARTNERTELLER'',s.operatorid = ''',_username,''',1)
+and ',txntype,' 
+)x group by kptn order by transdate desc
+');
+	PREPARE StrSQL FROM @query;
+	EXECUTE StrSQL;
+	
+/**
+SET @sql2=CONCAT('
+select flag,kptn,controlno,actions,txndate,sendername,transdate,transtime as time,receivername,Receiver_Phone,
+	referenceno,Currency,principal,charge,branchcode,Operator
+	from `kppartners`.unclaimereports 
+	where flag in (''SENDOUT'',''POCANCEL'')
+	group by kptn
+	order by transdate desc
+');
+PREPARE gtpo2 FROM @sql2;
+EXECUTE gtpo2;
+*/
+    END $$
+DELIMITER ;

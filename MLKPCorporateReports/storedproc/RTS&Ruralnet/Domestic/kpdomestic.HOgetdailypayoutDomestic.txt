@@ -1,0 +1,404 @@
+DELIMITER $$
+
+USE `kpdomestic`$$
+
+DROP PROCEDURE IF EXISTS `HOgetdailypayoutDomestic`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetdailypayoutDomestic`(IN accountCode VARCHAR(35),IN _year VARCHAR(6),IN _monthday VARCHAR(5),IN _username VARCHAR(50),IN _role VARCHAR(50),IN _db VARCHAR(100),IN _db1 VARCHAR(100),IN zcode VARCHAR(5),IN rcode VARCHAR(5),IN acode VARCHAR(5),IN bcode VARCHAR(5),IN _usertype VARCHAR(10),IN oldzcode VARCHAR(5))
+BEGIN
+IF _usertype = "NOTIAD" THEN #NOT IAD USER
+	SET @n_query= CONCAT('
+	SELECT controlno, kptn, referenceno, sendername, receivername, DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate, cancelleddate,
+		DATE_FORMAT(TIME,''%r'') AS TIME, Receiver_Phone, IF(operator IS NULL, operatorid,operator) AS Operator, currency, cancelreason,
+		branchcode, principal, charge, adjprincipal, adjCharge, socancelprincipal, socancelcharge, flag, branchname, zonecode, operatorid,
+		partnername
+		FROM(
+		SELECT DISTINCT 
+			IF(oldkptnno IS NULL,p.kptnno,oldkptnno) AS kptn, 
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' ,''**'','''') AS flag, 
+				p.claimeddate AS cancelleddate,	
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' 
+				AND p.cancelleddate<>'''' ,''WRONG PAYOUT'','''') AS cancelreason, 
+			controlno, p.sendername AS sendername, sodate AS transdate,DATE_FORMAT(sodate,''%H:%i:%S'') AS TIME, sodate, 
+			p.receivername AS receivername, oldkptnno AS oldkptn,receivercontactno AS Receiver_Phone,
+			IF(oldkptnno IS NULL,p.kptnno,oldkptnno) AS referenceno, 
+			p.Currency, principal,servicecharge, servicecharge AS charge, principal AS socancelprincipal, servicecharge AS socancelcharge,
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>''''  
+				AND DATE(p.cancelleddate)=DATE(p.claimeddate),principal * -1,0) AS  adjprincipal,
+			IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>''''  
+			AND DATE(p.cancelleddate)=DATE(p.claimeddate),servicecharge * -1,0) AS  adjcharge,
+			p.branchcode,
+			(SELECT b.branchname FROM kpusers.branches b WHERE b.branchcode=p.branchcode 
+				AND b.zonecode=IF(p.isremote=1,p.remotezonecode,p.zonecode) LIMIT 1) AS branchname,
+			(IF((SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+				WHERE pu.userid=IF(p.isremote,p.remoteoperatorid,p.operatorid) LIMIT 1) IS NULL,
+				IF((SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+						WHERE ss.userlogin= IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1) IS NULL,
+					(SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid 
+						WHERE ss.userlogin=IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1),
+					(SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+						WHERE ss.userlogin=IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1)),
+				(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=IF(p.isremote,p.remoteoperatorid,p.operatorid) LIMIT 1))) AS Operator,
+			IF(p.isremote,p.remoteoperatorid,p.operatorid) AS operatorid,''RURALNET INC'' AS partnername,
+			IF(p.isremote=1,p.remotezonecode,p.zonecode) AS zonecode
+		FROM kpdomestic.payout',_monthday,'  p 
+		INNER JOIN kpadminpartners.`accountcredential` al ON p.operatorid = al.userid AND al.accountid = ''',accountCode,'''
+		WHERE IF(''',_role,''' = ''KP-PARTNERTELLER'',IF(p.isremote,p.remoteoperatorid,p.operatorid) = ''',_username,''',1)
+			AND YEAR(p.claimeddate)=',_year,' AND (p.cancelledreason NOT IN (''Request FOR CHANGE'',''RETURN TO Sender'') OR p.cancelledreason IS NULL ) 
+		
+		UNION
+		SELECT DISTINCT 
+			s.kptnno AS kptn,
+			IF(s.cancelreason=''RETURN TO SENDER'',''*'','''') AS flag, 
+			s.cancelleddate AS cancelleddate,cancelreason, s.controlno,CONCAT(s.senderlname,'', '',s.senderfname,'' '',s.sendermname) AS sendername,
+			transdate,DATE_FORMAT(s.transdate,''%H:%i:%S'') AS TIME,s.transdate AS sodate,
+			CONCAT(s.receiverlname,'', '',s.receiverfname,'' '',s.receivermname) AS receivername,s.oldkptnno AS oldkptn,
+			receivercontactno AS Receiver_Phone, s.kptnno AS referenceno,s.Currency, s.principal,0 AS servicecharge,charge, 
+			s.principal AS socancelprincipal, s.charge AS socancelcharge, 0 AS adjprincipal, 0 AS adjcharge, s.cancelledbybranchcode AS branchcode,
+			b.branchname,
+			(IF((SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) 
+				FROM `kpadminpartners`.`partnersusers` pu WHERE pu.userid=cancelledbyoperatorid LIMIT 1) IS NULL,
+				IF((SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+						WHERE ss.userlogin=cancelledbyoperatorid  LIMIT 1) IS NULL,
+					(SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid 
+						WHERE ss.userlogin=cancelledbyoperatorid LIMIT 1),
+					(SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+						WHERE ss.userlogin=cancelledbyoperatorid LIMIT 1)),
+				(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+					WHERE pu.userid=cancelledbyoperatorid LIMIT 1))) AS Operator,
+			cancelledbyoperatorid AS operatorid,''RURALNET INC'' AS partnername,cancelledbyzonecode AS zonecode 
+		FROM  kpdomestic.sendout',_monthday,' s
+		INNER JOIN kpadminpartners.`accountcredential` al ON s.operatorid = al.userid AND al.accountid = ''',accountCode,'''
+		INNER JOIN kpusers.branches b ON b.branchcode=s.branchcode AND b.zonecode=s.zonecode
+		WHERE YEAR(cancelleddate)=',_year,'  AND DATE_FORMAT(cancelleddate,''%m%d'')=',_monthday,' AND s.cancelreason IN (''RETURN TO SENDER'') 
+			AND IF (''',_role,''' = ''KP-PARTNERTELLER'',cancelledbyoperatorid = ''',_username,''',1))X
+	');
+ELSEIF _usertype = "IAD" THEN #IAD USER
+	IF accountCode = "" THEN #NO SPECIFIC PARTNER - FOR SUMMARY REPORT
+		IF bcode<>"" AND acode<>"" AND rcode<>"" THEN # BY BRANCH
+		SET @n_query= CONCAT('
+		SELECT controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,cancelleddate,
+			DATE_FORMAT(TIME,''%r'') AS TIME,Receiver_Phone, IF(operator IS NULL,operatorid,operator) AS Operator,currency,
+			cancelreason,branchcode,principal,charge,adjprincipal,adjCharge,socancelprincipal,socancelcharge,flag,branchname,zonecode,operatorid,
+			partnername
+			FROM(
+			SELECT DISTINCT 
+				IF(oldkptnno IS NULL,p.kptnno,oldkptnno) AS kptn,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' ,''**'','''') AS flag, 
+				p.claimeddate AS cancelleddate,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>'''' ,''WRONG PAYOUT'','''') AS cancelreason,
+				controlno,p.sendername AS sendername,sodate AS transdate, DATE_FORMAT(sodate,''%H:%i:%S'') AS TIME,sodate,
+				p.receivername AS receivername, oldkptnno AS oldkptn,receivercontactno AS Receiver_Phone,
+				IF(oldkptnno IS NULL,p.kptnno,oldkptnno) AS referenceno,
+				p.Currency,principal,servicecharge,servicecharge AS charge,principal AS socancelprincipal,
+				servicecharge AS socancelcharge,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>''''  
+					AND DATE(p.cancelleddate)=DATE(p.claimeddate),principal * -1,0) AS  adjprincipal,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>''''  
+					AND DATE(p.cancelleddate)=DATE(p.claimeddate),servicecharge * -1,0) AS  adjcharge,
+				p.branchcode,
+				(SELECT b.branchname FROM kpusers.branches b WHERE b.branchcode=p.branchcode 
+					AND b.zonecode=IF(p.isremote=1,p.remotezonecode,p.zonecode) LIMIT 1) AS branchname,
+				(IF((SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=IF(p.isremote,p.remoteoperatorid,p.operatorid) LIMIT 1) IS NULL,
+					IF((SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin= IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1) IS NULL,
+						(SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1),
+						(SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1)),
+					(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=IF(p.isremote,p.remoteoperatorid,p.operatorid) LIMIT 1))) AS Operator,
+				IF(p.isremote,p.remoteoperatorid,p.operatorid) AS operatorid,''RURALNET INC'' AS partnername,
+				IF(p.isremote=1,p.remotezonecode,p.zonecode) AS zonecode
+			FROM kpdomestic.payout',_monthday,' p
+			INNER JOIN kpadminpartners.`accountcredential` al ON p.operatorid = al.userid AND al.accountid = ''',accountCode,'''
+			#INNER JOIN kpadminpartners.accountlist b ON b.accountid=p.accountid 
+			WHERE
+				IF(''',_role,''' = ''KP-PARTNERTELLER'',IF(p.isremote,p.remoteoperatorid,p.operatorid) = ''',_username,''',1)
+				AND YEAR(p.claimeddate)=',_year,' AND (p.cancelledreason NOT IN (''Request FOR CHANGE'',''RETURN TO Sender'') OR p.cancelledreason IS NULL )
+				AND (IF(p.isremote=1,p.remotezonecode,p.zonecode)=',zcode,' OR IF(p.isremote=1,p.remotezonecode,p.zonecode)=',oldzcode,') AND p.branchcode=',bcode,'
+			UNION
+				
+			SELECT DISTINCT 
+				s.kptnno AS kptn,
+				IF(s.cancelreason=''RETURN TO SENDER'',''*'','''') AS flag, 
+				s.cancelleddate AS cancelleddate,cancelreason,s.controlno,
+				CONCAT(s.senderlname,'', '',s.senderfname,'' '',s.sendermname) AS sendername,transdate,
+				DATE_FORMAT(s.transdate,''%H:%i:%S'') AS TIME,s.transdate AS sodate,
+				CONCAT(s.receiverlname,'', '',s.receiverfname,'' '',s.receivermname) AS receivername,
+				s.oldkptnno AS oldkptn,receivercontactno AS Receiver_Phone,s.kptnno AS referenceno,s.Currency,
+				s.principal,0 AS servicecharge,charge,s.principal AS socancelprincipal,s.charge AS socancelcharge,
+				0 AS adjprincipal,0 AS adjcharge,s.cancelledbybranchcode AS branchcode, b.branchname,
+				(IF((SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=cancelledbyoperatorid LIMIT 1) IS NULL,
+					IF((SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=cancelledbyoperatorid  LIMIT 1) IS NULL,
+						(SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=cancelledbyoperatorid LIMIT 1),
+						(SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=cancelledbyoperatorid LIMIT 1)),
+					(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=cancelledbyoperatorid LIMIT 1))) AS Operator,
+				cancelledbyoperatorid AS operatorid,''RURALNET INC'' AS partnername,cancelledbyzonecode AS zonecode
+			FROM  kpdomestic.sendout',_monthday,' s
+			INNER JOIN kpusers.branches b ON b.branchcode=',bcode,' AND b.zonecode=',zcode,' AND b.oldzonecode=',oldzcode,'
+			INNER JOIN kpadminpartners.`accountcredential` al ON s.operatorid = al.userid AND al.accountid = ''',accountCode,'''
+			#INNER JOIN kpadminpartners.accountlist c ON c.accountid=s.accountid 
+			WHERE 
+				s.cancelledbybranchcode = b.branchcode AND (cancelledbyzonecode=b.zonecode OR cancelledbyzonecode=b.oldzonecode)   AND 
+				YEAR(cancelleddate)=',_year,' AND DATE_FORMAT(cancelleddate,''%m%d'')=',_monthday,' AND s.cancelreason IN (''RETURN TO SENDER'') 
+				AND IF (''',_role,''' = ''KP-PARTNERTELLER'',cancelledbyoperatorid = ''',_username,''',1))X
+		');
+		END IF;
+	ELSEIF accountCode <> "" THEN #WITH SPECIFIC PARTNER 
+		IF bcode<>"" AND acode<>"" AND rcode<>"" THEN #BY BRANCH
+		SET @n_query= CONCAT('
+		SELECT controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+			cancelleddate,DATE_FORMAT(TIME,''%r'') AS TIME,Receiver_Phone,IF(operator IS NULL,operatorid,operator) AS Operator,
+			currency,cancelledreason,branchcode,principal,charge,adjprincipal,adjCharge,socancelprincipal,socancelcharge,
+			flag,branchname,zonecode,operatorid,partnername
+			FROM(
+			SELECT DISTINCT 
+				IF(oldkptnno IS NULL,p.kptnno,oldkptnno) AS kptn,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' 
+					AND p.cancelleddate<>'''' ,''**'','''') AS flag, 
+				p.claimeddate AS cancelleddate,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' 
+					AND p.cancelleddate<>'''' ,''WRONG PAYOUT'','''') AS cancelledreason,
+				controlno,p.sendername AS sendername,sodate AS transdate,
+				DATE_FORMAT(sodate,''%H:%i:%S'') AS TIME,sodate, p.receivername AS receivername,
+				oldkptnno AS oldkptn,receivercontactno AS Receiver_Phone,
+				IF(oldkptnno IS NULL,p.kptnno,oldkptnno) AS referenceno,
+				p.Currency, principal,servicecharge,servicecharge AS charge,
+				principal AS socancelprincipal,servicecharge AS socancelcharge,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' 
+					AND p.cancelleddate<>''''  AND DATE(p.cancelleddate)=DATE(p.claimeddate),principal * -1,0) AS  adjprincipal,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' 
+					AND p.cancelleddate<>''''  AND DATE(p.cancelleddate)=DATE(p.claimeddate),servicecharge * -1,0) AS  adjcharge,
+				p.branchcode,
+				(SELECT b.branchname FROM kpusers.branches b WHERE b.branchcode=p.branchcode 
+					AND b.zonecode=IF(p.isremote=1,p.remotezonecode,p.zonecode) LIMIT 1) AS branchname,
+				(IF((SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=IF(p.isremote,p.remoteoperatorid,p.operatorid) LIMIT 1) IS NULL,
+					IF((SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin= IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1) IS NULL,
+						(SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1),
+						(SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1)),
+					(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=IF(p.isremote,p.remoteoperatorid,p.operatorid) LIMIT 1))) AS Operator,
+				IF(p.isremote,p.remoteoperatorid,p.operatorid) AS operatorid, ''RURALNET INC'' AS partnername,
+				IF(p.isremote=1,p.remotezonecode,p.zonecode) AS zonecode
+				
+				FROM kpdomestic.payout',_monthday,'  p
+				INNER JOIN kpadminpartners.`accountcredential` al ON p.operatorid = al.userid AND al.accountid = ''',accountCode,'''
+				WHERE
+					IF(''',_role,''' = ''KP-PARTNERTELLER'',IF(p.isremote,p.remoteoperatorid,p.operatorid) = ',_username,',1)
+					AND YEAR(p.claimeddate)=',_year,' AND (p.cancelledreason NOT IN (''Request FOR CHANGE'',''RETURN TO Sender'') 
+						OR p.cancelledreason IS NULL) 
+					AND(IF(p.isremote=1,p.remotezonecode,p.zonecode)=',zcode,' OR IF(p.isremote=1,p.remotezonecode,p.zonecode)=',oldzcode,') 
+					AND p.branchcode=',bcode,'
+					
+				UNION
+				
+				SELECT DISTINCT 
+					s.kptnno AS kptn,
+					IF(s.cancelreason=''RETURN TO SENDER'',''*'','''') AS flag, 
+				s.cancelleddate AS cancelleddate,cancelreason, s.controlno,
+				CONCAT(s.senderlname,'', '',s.senderfname,'' '',s.sendermname) AS sendername,transdate,
+				DATE_FORMAT(s.transdate,''%H:%i:%S'') AS TIME,s.transdate AS sodate,
+				CONCAT(s.receiverlname,'', '',s.receiverfname,'' '',s.receivermname) AS receivername,
+				s.oldkptnno AS oldkptn,receivercontactno AS Receiver_Phone, s.kptnno AS referenceno,
+				s.Currency, s.principal,0 AS servicecharge,charge, s.principal AS socancelprincipal,
+				s.charge AS socancelcharge, 0 AS adjprincipal, 0 AS adjcharge, s.cancelledbybranchcode AS branchcode,
+				b.branchname,
+				(IF((SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=cancelledbyoperatorid LIMIT 1) IS NULL,
+					IF((SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=cancelledbyoperatorid  LIMIT 1) IS NULL,
+						(SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=cancelledbyoperatorid LIMIT 1),
+						(SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=cancelledbyoperatorid LIMIT 1)),
+					(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=cancelledbyoperatorid LIMIT 1))) AS Operator,
+				cancelledbyoperatorid AS operatorid,''RU
+				RALNET INC'' AS partnername, cancelledbyzonecode AS zonecode
+			FROM  kpdomestic.sendout',_monthday,' s
+			INNER JOIN kpusers.branches b ON b.branchcode=',bcode,' AND b.zonecode=',zcode,' AND b.oldzonecode=',oldzcode,'
+			INNER JOIN kpadminpartners.`accountcredential` al ON s.operatorid = al.userid AND al.accountid = ''',accountCode,'''
+			WHERE 
+				s.cancelledbybranchcode =b.branchcode AND (cancelledbyzonecode=b.zonecode OR cancelledbyzonecode=b.oldzonecode)   AND 
+				YEAR(cancelleddate)=',_year,' AND DATE_FORMAT(cancelleddate,''%m%d'')=',_monthday,' AND s.cancelreason IN (''RETURN TO SENDER'') 
+				AND IF (''',_role,''' = ''KP-PARTNERTELLER'',cancelledbyoperatorid = ''',_username,''',1))X	
+		');
+		ELSEIF bcode="" AND acode<>"" AND rcode<>"" THEN #BY AREA
+		SET @n_query= CONCAT('
+		SELECT controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,cancelleddate,
+			DATE_FORMAT(TIME,''%r'') AS TIME,Receiver_Phone,IF(operator IS NULL,operatorid,operator) AS Operator,currency,
+			cancelreason,branchcode,principal,charge,adjprincipal,adjCharge, socancelprincipal,socancelcharge,flag,branchname,
+			zonecode,operatorid,partnername
+			FROM(
+			SELECT DISTINCT 
+				IF(oldkptnno IS NULL,p.kptnno,oldkptnno) AS kptn,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' 
+					AND p.cancelleddate<>'''' ,''**'','''') AS flag, 
+				p.claimeddate AS cancelleddate,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' 
+					AND p.cancelleddate<>'''' ,''WRONG PAYOUT'','''') AS cancelreason,
+				controlno,p.sendername AS sendername,sodate AS transdate,DATE_FORMAT(sodate,''%H:%i:%S'') AS TIME,
+				sodate, p.receivername AS receivername, oldkptnno AS oldkptn,receivercontactno AS Receiver_Phone,
+				IF(oldkptnno IS NULL,p.kptnno,oldkptnno) AS referenceno,
+				p.Currency,principal,servicecharge,servicecharge AS charge, principal AS socancelprincipal,
+				servicecharge AS socancelcharge,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>''''  
+					AND DATE(p.cancelleddate)=DATE(p.claimeddate),principal * -1,0) AS  adjprincipal,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>''''  
+					AND DATE(p.cancelleddate)=DATE(p.claimeddate),servicecharge * -1,0) AS  adjcharge,
+				p.branchcode,
+				(SELECT b.branchname FROM kpusers.branches b WHERE b.branchcode=p.branchcode 
+					AND b.zonecode=IF(p.isremote=1,p.remotezonecode,p.zonecode) LIMIT 1) AS branchname,
+				(IF((SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=IF(p.isremote,p.remoteoperatorid,p.operatorid) LIMIT 1) IS NULL,
+					IF((SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin= IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1) IS NULL,
+						(SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1),
+						(SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1)),
+					(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=IF(p.isremote,p.remoteoperatorid,p.operatorid) LIMIT 1))) AS Operator,
+				IF(p.isremote,p.remoteoperatorid,p.operatorid) AS operatorid,
+				''RURALNET INC'' AS partnername,
+				IF(p.isremote=1,p.remotezonecode,p.zonecode) AS zonecode
+			FROM kpdomestic.payout',_monthday,' p
+			INNER JOIN kpusers.branches b ON b.branchcode=p.branchcode AND b.regioncode=',rcode,' AND b.areacode=',acode,'
+				AND b.oldzonecode=',oldzcode,' AND b.zonecode=',zcode,'
+			INNER JOIN kpadminpartners.`accountcredential` al ON p.operatorid = al.userid AND al.accountid = ''',accountCode,'''
+			WHERE
+				IF(''',_role,''' = ''KP-PARTNERTELLER'',IF(p.isremote,p.remoteoperatorid,p.operatorid) = ''',_username,''',1)
+				AND YEAR(p.claimeddate)=',_year,' AND (p.cancelledreason NOT IN (''Request FOR CHANGE'',''RETURN TO Sender'') OR p.cancelledreason IS NULL )
+				AND  (IF(p.isremote=1,p.remotezonecode,p.zonecode)=b.zonecode OR IF(p.isremote=1,p.remotezonecode,p.zonecode)=b.oldzonecode)
+				AND p.branchcode=b.branchcode
+			UNION
+			
+			SELECT DISTINCT 
+				s.kptnno AS kptn,IF(s.cancelreason=''RETURN TO SENDER'',''*'','''') AS flag, 
+				s.cancelleddate AS cancelleddate,cancelreason, s.controlno,
+				CONCAT(s.senderlname,'', '',s.senderfname,'' '',s.sendermname) AS sendername,transdate,
+				DATE_FORMAT(s.transdate,''%H:%i:%S'') AS TIME,s.transdate AS sodate,
+				CONCAT(s.receiverlname,'', '',s.receiverfname,'' '',s.receivermname) AS receivername,
+				s.oldkptnno AS oldkptn,receivercontactno AS Receiver_Phone,s.kptnno AS referenceno,
+				s.Currency, s.principal,0 AS servicecharge,charge, s.principal AS socancelprincipal,
+				s.charge AS socancelcharge, 0 AS adjprincipal, 0 AS adjcharge, 
+				s.cancelledbybranchcode AS branchcode, b.branchname,
+				(IF((SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=cancelledbyoperatorid LIMIT 1) IS NULL,
+					IF((SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=cancelledbyoperatorid  LIMIT 1) IS NULL,
+						(SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=cancelledbyoperatorid LIMIT 1),
+						(SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=cancelledbyoperatorid LIMIT 1)),
+					(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=cancelledbyoperatorid LIMIT 1))) AS Operator,
+				cancelledbyoperatorid AS operatorid,''RURALNET INC'' AS partnername, cancelledbyzonecode AS zonecode
+			FROM  kpdomestic.sendout',_monthday,' s
+			INNER JOIN kpusers.branches b ON b.branchcode=s.branchcode AND b.regioncode=',rcode,' AND b.areacode=',acode,' 
+				AND b.zonecode=',zcode,' AND b.oldzonecode=',oldzcode,'
+			INNER JOIN kpadminpartners.`accountcredential` al ON s.operatorid = al.userid AND al.accountid = ''',accountCode,'''
+			WHERE
+				s.cancelledbybranchcode = b.branchcode AND (cancelledbyzonecode=b.zonecode OR cancelledbyzonecode=b.oldzonecode)   AND 
+				YEAR(cancelleddate)=',_year,'  AND DATE_FORMAT(cancelleddate,''%m%d'')=',_monthday,' AND s.cancelreason IN (''RETURN TO SENDER'') 
+				AND IF (''',_role,''' = ''KP-PARTNERTELLER'',cancelledbyoperatorid = ''',_username,''',1))X
+		');
+		ELSEIF bcode="" AND acode="" AND rcode<>"" THEN #BY REGION
+		SET @n_query= CONCAT('
+		SELECT controlno,kptn,referenceno,sendername,receivername,DATE_FORMAT(transdate,''%Y-%m-%d %r'') AS transdate,
+			cancelleddate,DATE_FORMAT(TIME,''%r'') AS TIME,Receiver_Phone,IF(operator IS NULL,operatorid,operator) AS Operator,
+			currency,cancelreason,branchcode,principal,charge,adjprincipal,adjCharge,socancelprincipal,socancelcharge,
+			flag,branchname,zonecode,operatorid,partnername
+			FROM(
+			SELECT DISTINCT 
+				IF(oldkptnno IS NULL,p.kptnno,oldkptnno) AS kptn,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' 
+					AND p.cancelleddate<>'''' ,''**'','''') AS flag, 
+				p.claimeddate AS cancelleddate,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' 
+					AND p.cancelleddate<>'''' ,''WRONG PAYOUT'','''') AS cancelreason,
+				controlno,p.sendername AS sendername,sodate AS transdate, DATE_FORMAT(sodate,''%H:%i:%S'') AS TIME,
+				sodate, p.receivername AS receivername, oldkptnno AS oldkptn,receivercontactno AS Receiver_Phone,
+				IF(oldkptnno IS NULL,p.kptnno,oldkptnno) AS referenceno,
+				p.Currency, principal,servicecharge,servicecharge AS charge, principal AS socancelprincipal,
+				servicecharge AS socancelcharge,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>''''  
+					AND DATE(p.cancelleddate)=DATE(p.claimeddate),principal * -1,0) AS  adjprincipal,
+				IF(p.cancelleddate IS NOT NULL AND p.cancelleddate<>''0000-00-00 00:00:00'' AND p.cancelleddate<>''''  
+					AND DATE(p.cancelleddate)=DATE(p.claimeddate),servicecharge * -1,0) AS  adjcharge,
+				p.branchcode,
+				(SELECT b.branchname FROM kpusers.branches b WHERE b.branchcode=p.branchcode 
+					AND b.zonecode=IF(p.isremote=1,p.remotezonecode,p.zonecode) LIMIT 1) AS branchname,
+				(IF((SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=IF(p.isremote,p.remoteoperatorid,p.operatorid) LIMIT 1) IS NULL,
+					IF( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin= IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1) IS NULL,
+						(SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1),
+						(SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=IF(p.isremote,p.remoteoperatorid,p.operatorid)  LIMIT 1)),
+					(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=IF(p.isremote,p.remoteoperatorid,p.operatorid) LIMIT 1))) AS Operator,
+				IF(p.isremote,p.remoteoperatorid,p.operatorid) AS operatorid,''RURALNET INC'' AS partnername,
+				IF(p.isremote=1,p.remotezonecode,p.zonecode) AS zonecode
+			FROM kpdomestic.payout',_monthday,' p
+			INNER JOIN kpusers.branches b ON b.branchcode=p.branchcode AND b.regioncode=',rcode,' 
+				AND b.oldzonecode=',oldzcode,' AND b.zonecode=',zcode,'
+			INNER JOIN kpadminpartners.`accountcredential` al ON p.operatorid = al.userid AND al.accountid = ''',accountCode,'''
+			WHERE
+				IF (''',_role,''' = ''KP-PARTNERTELLER'',IF(p.isremote,p.remoteoperatorid,p.operatorid) = ''',_username,''',1)
+				AND YEAR(p.claimeddate)=',_year,' AND (p.cancelledreason NOT IN (''Request FOR CHANGE'',''RETURN TO Sender'') OR p.cancelledreason IS NULL )
+				AND  (IF(p.isremote=1,p.remotezonecode,p.zonecode)=b.zonecode OR IF(p.isremote=1,p.remotezonecode,p.zonecode)=b.oldzonecode)
+				AND p.branchcode=b.branchcode
+			UNION
+			SELECT DISTINCT 
+				s.kptnno AS kptn,IF(s.cancelreason=''RETURN TO SENDER'',''*'','''') AS flag, 
+				s.cancelleddate AS cancelleddate,cancelreason, s.controlno,
+				CONCAT(s.senderlname,'', '',s.senderfname,'' '',s.sendermname) AS sendername,transdate,
+				DATE_FORMAT(s.transdate,''%H:%i:%S'') AS TIME,s.transdate AS sodate,
+				CONCAT(s.receiverlname,'', '',s.receiverfname,'' '',s.receivermname) AS receivername,
+				s.oldkptnno AS oldkptn,receivercontactno AS Receiver_Phone,
+				s.kptnno AS referenceno,s.Currency, s.principal,0 AS servicecharge,charge,
+				s.principal AS socancelprincipal, s.charge AS socancelcharge,
+				0 AS adjprincipal, 0 AS adjcharge, s.cancelledbybranchcode AS branchcode, b.branchname,
+				(IF((SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=cancelledbyoperatorid LIMIT 1) IS NULL,
+					IF((SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=cancelledbyoperatorid  LIMIT 1) IS NULL,
+						(SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=cancelledbyoperatorid LIMIT 1),
+						(SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid 
+							WHERE ss.userlogin=cancelledbyoperatorid LIMIT 1)),
+					(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu 
+						WHERE pu.userid=cancelledbyoperatorid LIMIT 1))) AS Operator,
+				cancelledbyoperatorid AS operatorid,''RURALNET INC'' AS partnername, cancelledbyzonecode AS zonecode
+			FROM  kpdomestic.sendout',_monthday,' s
+			INNER JOIN kpusers.branches b ON b.branchcode=s.branchcode AND b.regioncode=',rcode,'
+				AND b.zonecode=',zcode,' AND b.oldzonecode=',oldzcode,'
+			INNER JOIN kpadminpartners.`accountcredential` al ON s.operatorid = al.userid AND al.accountid = ''',accountCode,'''
+			WHERE
+				s.cancelledbybranchcode = b.branchcode AND (cancelledbyzonecode=b.zonecode OR cancelledbyzonecode=b.oldzonecode)   
+				AND YEAR(cancelleddate)=',_year,'  AND DATE_FORMAT(cancelleddate,''%m%d'')=',_monthday,' AND s.cancelreason IN (''RETURN TO SENDER'') 
+				AND IF (''',_role,''' = ''KP-PARTNERTELLER'',cancelledbyoperatorid = ''',_username,''',1))X
+		');
+		END IF;
+	END IF;
+END IF;															
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

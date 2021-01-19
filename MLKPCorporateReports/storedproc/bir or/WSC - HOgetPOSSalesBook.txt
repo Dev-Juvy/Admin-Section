@@ -1,0 +1,66 @@
+DELIMITER $$
+
+USE `kpORNO`$$
+
+DROP PROCEDURE IF EXISTS `HOgetPOSSalesBook`$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `HOgetPOSSalesBook`(IN accountCode VARCHAR(30),IN _month VARCHAR(2),IN _year VARCHAR(4))
+BEGIN
+DECLARE _monthdate VARCHAR(4);
+DECLARE _lastdate VARCHAR(4);
+DECLARE _datefrom VARCHAR(15); 
+DECLARE _dateto VARCHAR(15);
+SET _datefrom = CONCAT(_year,'-',_month,'-01');
+SET _lastdate = DAY(LAST_DAY(CONCAT(_year,'-',_month,'-01')));
+SET _dateto= CONCAT(_year,'-',_month,'-',_lastdate);           
+DROP TEMPORARY   TABLE IF EXISTS kpORNO.txnlogs;
+CREATE TEMPORARY  TABLE kpORNO.txnlogs(accountid VARCHAR(100),sales VARCHAR(100),vatable VARCHAR(100),tin VARCHAR(100),orno VARCHAR(100),grandtotalold VARCHAR(100),DATE VARCHAR(100),firsttxndate VARCHAR(100) );
+WHILE DATE(_datefrom) <= DATE(_dateto) DO
+SET _monthdate = DATE_FORMAT(_datefrom,'%m%d');     
+SET @n_query= CONCAT('insert into kpORNO.txnlogs(accountid,sales,vatable,tin,orno,grandtotalold,DATE,firsttxndate )'
+'select accountid,sum(sales) AS sales,sum(vatable) AS vatable,tin,orno,
+
+(select SUM(chargeamount) from (select chargeamount from `kppartnerstransactions`.`corporatesendouts` cs 
+inner join `kpORNO`.`orDetails` a on a.refno=cs.referenceno 
+where  cs.accountid=''',accountCode,'''  AND DATE(cs.transdate)<DATE(''',_datefrom,''') group by refno)x) as grandtotalold,
+
+DATE,firsttxndate
+from (
+
+(SELECT a.accountid,s.charge AS sales,(s.charge/1.12) AS vatable,concat(b.tin,''-'',c.locationcode) AS tin,
+CONCAT((SELECT b.orno FROM `kpORNO`.`orDetails` b WHERE DATE(b.datecreated)=DATE(a.datecreated) ORDER BY b.datecreated ASC LIMIT 1),'' TO '',
+(SELECT b.orno FROM `kpORNO`.`orDetails` b WHERE DATE(b.datecreated)=DATE(a.datecreated) ORDER BY b.datecreated DESC  LIMIT 1)) AS orno,
+(SELECT SUM(e.servicefee) FROM `kpORNO`.`orDetails` e WHERE DATE(e.datecreated)<DATE(a.datecreated)) AS grandtotalold,DATE(a.datecreated) AS DATE,
+(SELECT  DATE(d.datecreated) FROM `kpORNO`.`orDetails` d where d.datecreated is not null ORDER BY d.datecreated ASC LIMIT 1) AS firsttxndate
+FROM `kpORNO`.`orDetails` a
+INNER JOIN  kppartners.sendout',_monthdate,' s on a.accountid=s.accountcode and a.refno=s.referenceno
+INNER JOIN kpadminpartners.accountdetail b ON b.accountid = a.accountid
+INNER JOIN kpadminpartners.accountlist c ON c.accountid = a.accountid
+INNER JOIN kppartners.sotxnref sf ON sf.accountcode=a.accountid AND sf.referenceno=a.refno
+WHERE date(a.datecreated)=date(''',_datefrom,''') AND a.accountid=''',accountCode,''' AND sf.transactiontype IN (''3'') 
+GROUP BY a.refno )
+
+union all 
+
+(SELECT ''',accountCode,''' as accountid,0 AS sales,0 AS vatable,concat(b.tin,''-'',c.locationcode)  AS tin,'''' AS orno,
+SUM(a.servicefee)   AS grandtotalold,date(''',_datefrom,''') AS DATE,
+(SELECT  DATE(d.datecreated) FROM `kpORNO`.`orDetails` d where d.datecreated is not null ORDER BY d.datecreated ASC LIMIT 1) AS firsttxndate
+FROM `kpORNO`.`orDetails` a
+INNER JOIN kpadminpartners.accountdetail b ON b.accountid = a.accountid
+INNER JOIN kpadminpartners.accountlist c ON c.accountid = a.accountid
+WHERE DATE(a.datecreated)<date(''',_datefrom,''') AND a.accountid=''',accountCode,''' )
+
+)x group by date ORDER BY date ASC;
+');													
+SET _datefrom = DATE_ADD(_datefrom, INTERVAL 1 DAY);                
+PREPARE StrSQL FROM @n_query;
+EXECUTE StrSQL;
+END WHILE;
+SET @sql3=CONCAT('SELECT accountid,SUM(sales) AS sales,SUM(vatable) AS vatable,tin,orno,
+IF(grandtotalold IS NULL,0,grandtotalold) AS grandtotalold,DATE,firsttxndate,(DATEDIFF(DATE(DATE),DATE(firsttxndate))+1) AS seqno 
+FROM kpORNO.txnlogs GROUP BY DATE ORDER BY DATE ASC; ');
+PREPARE gtpo3 FROM @sql3;
+EXECUTE gtpo3;
+END$$
+
+DELIMITER ;

@@ -1,0 +1,45 @@
+DELIMITER $$
+
+USE `kpORNO`$$
+
+DROP PROCEDURE IF EXISTS `HOgetORRegistered`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetORRegistered`(IN accountCode VARCHAR(30),IN _datefrom VARCHAR(15),IN _dateto VARCHAR(15),IN rtype VARCHAR(100))
+BEGIN
+DECLARE _monthdate VARCHAR(4);
+DECLARE _year VARCHAR(4);
+DROP  TEMPORARY  TABLE IF EXISTS kpORNO.ortxn;
+CREATE  TEMPORARY TABLE kpORNO.ortxn(dateissued VARCHAR(50),orno VARCHAR(100),sendername VARCHAR(100),principal VARCHAR(100),cancelledprincipal VARCHAR(100),
+charge VARCHAR(100),vatamount VARCHAR(100),location VARCHAR(100),tin VARCHAR(100),STATUS VARCHAR(100),remarks VARCHAR(100));
+WHILE DATE(_datefrom) <= DATE(_dateto) DO
+SET _monthdate = DATE_FORMAT(_datefrom,'%m%d');
+SET _year = DATE_FORMAT(_datefrom,'%Y');
+		
+SET @n_query= CONCAT('insert into kpORNO.ortxn(dateissued,orno,sendername,cancelledprincipal,principal,charge,vatamount,location,tin,status,remarks)'
+'SELECT s.transdate AS dateissued,od.orno,s.sendername,
+if((cancelreason is not null or cancelreason <>''''),s.principal,0) as cancelledprincipal,
+if((cancelreason is not null or cancelreason <>''''),0,s.principal) as principal,
+(s.charge/1.12) as charge,((s.charge/1.12) * 0.12) AS vatamount,
+sl.sublocationdesc as location ,concat(a.tin,''-'',b.locationcode) AS tin,
+if((cancelreason is not null or cancelreason <>''''),''Cancelled'',''Open'') as status,cancelreason as remarks
+FROM kppartners.sendout',_monthdate,' s
+INNER JOIN `kpORNO`.`orDetails` od ON od.accountid=s.accountcode and od.refno=s.referenceno
+INNER JOIN `kpadminpartners`.`ws_Sublocation` sl ON sl.sublocationid=od.locationid
+INNER JOIN kpadminpartners.accountdetail a ON a.accountid = s.accountcode
+INNER JOIN kpadminpartners.accountlist b ON b.accountid = s.accountcode
+INNER JOIN kppartners.sotxnref sf ON sf.accountcode=s.accountcode AND sf.referenceno=s.referenceno
+WHERE s.accountcode=''',accountCode,''' and date(od.datecreated)=date(''',_datefrom,''') and YEAR(s.transdate)=',_year,' AND sf.transactiontype IN (''3'')
+and if(''',rtype,'''=''ARCancelled'',(cancelreason is not null or cancelreason <>''''),1)
+ORDER BY s.transdate ASC;
+');													
+SET _datefrom = DATE_ADD(_datefrom, INTERVAL 1 DAY);                
+PREPARE StrSQL FROM @n_query;
+EXECUTE StrSQL;
+END WHILE;
+SET @sql3=CONCAT('select dateissued,orno,sendername,cancelledprincipal,principal,charge,vatamount,location,tin,status,remarks 
+from kpORNO.ortxn; ');
+PREPARE gtpo3 FROM @sql3;
+EXECUTE gtpo3;
+END$$
+
+DELIMITER ;

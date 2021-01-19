@@ -1,0 +1,45 @@
+DELIMITER $$
+
+USE `kppartners`$$
+
+DROP PROCEDURE IF EXISTS `HOgetMonthlySMBranch`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetMonthlySMBranch`(IN datefrom VARCHAR(15),IN dateto VARCHAR(15), IN accountCode VARCHAR(35))
+BEGIN
+	DECLARE _monthdate VARCHAR(4);
+	DECLARE _year VARCHAR(4);
+	
+	DROP  TEMPORARY  TABLE IF EXISTS kppartners.tmpsmmonthlytxn;
+	CREATE  TEMPORARY TABLE kppartners.tmpsmmonthlytxn(itemcount VARCHAR(100),principal VARCHAR(100),charge VARCHAR(100),total VARCHAR(100),feeshare VARCHAR(100));
+	
+	WHILE DATE(datefrom) <= DATE(dateto) DO
+		SET _monthdate = DATE_FORMAT(datefrom,'%m%d');
+		SET _year = DATE_FORMAT(datefrom,'%Y');
+		
+		SET @n_query= CONCAT('INSERT INTO kppartners.tmpsmmonthlytxn(itemcount,principal,charge,total,feeshare)'
+		'select count(kptn) as itemcount,sum(principal) as principal,sum(charge) as charge,(sum(principal)+sum(charge)) as total,(sum(charge)*(0.33)) as feeshare
+		from (SELECT 
+		DISTINCT s.kptn,s.principal,s.charge
+		FROM kppartners.sendout',_monthdate,' s 
+		INNER JOIN kppartnerstransactions.corporatesendouts so ON so.kptn=s.kptn
+		INNER JOIN kppartners.sotxnref sf ON sf.accountcode=so.accountid AND sf.referenceno=so.referenceno
+		WHERE s.accountcode=''',accountCode,''' AND YEAR(s.transdate)=',_year,'  AND sf.transactiontype IN (''3'')
+		AND (DATE(s.transdate)=DATE(s.cancelleddate) OR s.cancelleddate IS NULL OR s.cancelleddate=''0000-00-00 00:00:00'' OR s.cancelleddate='''' 
+		OR IF(s.cancelreason=''CHANGE DETAILS'',DATE(s.transdate)<>DATE(s.cancelleddate),
+		IF(s.cancelreason=''CANCEL'',IF(DATE(s.transdate)<>DATE(s.cancelleddate),DATE_FORMAT(s.transdate,''%m%d'')=',_monthdate,',1),0))) GROUP BY s.kptn)x
+		');
+		PREPARE StrSQL FROM @n_query;
+		EXECUTE StrSQL;
+		SET datefrom = DATE_ADD(datefrom, INTERVAL 1 DAY);                
+	END WHILE;
+	
+		
+	SET @sql3=CONCAT('select if(sum(itemcount) is null,0,sum(itemcount)) as itemcount,
+	if(sum(principal) is null,0,sum(principal)) as principal,if(sum(charge) is null,0,sum(charge)) as charge,
+	if(sum(total) is null,0,sum(total)) as total,if(sum(feeshare) is null,0,sum(feeshare)) as feeshare from kppartners.tmpsmmonthlytxn; ');
+	PREPARE gtpo3 FROM @sql3;
+	EXECUTE gtpo3;
+	
+    END$$
+
+DELIMITER ;

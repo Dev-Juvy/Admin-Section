@@ -1,0 +1,69 @@
+
+
+USE `kpOFW`;
+
+
+/* Procedure structure for procedure `HOGetExpressSO` */
+
+DROP PROCEDURE IF EXISTS  `HOGetExpressSO` ;
+
+DELIMITER $$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `HOGetExpressSO`(IN _db VARCHAR(15),IN _date VARCHAR(4),IN _year VARCHAR(4),IN operatorid VARCHAR(35))
+BEGIN
+		SET @n_query= CONCAT('
+		select DISTINCT kptn,if(flag is null,'''',flag) as flag,
+		if(cancelleddate is null,''0000-00-00 00:00:00'',cancelleddate) as cancelleddate,
+if(cancelreason is null,'''',cancelreason) as cancelreason,controlno,sendername,
+if(transdate is null,''0000-00-00 00:00:00'',transdate) as transdate,TIME,receivername,
+Receiver_Phone,referenceno ,Currency,principal,charge,socancelprincipal ,
+socancelcharge,adjprincipal,adjcharge,branchcode,Operator,commission,operatorid,zonecode from (
+
+		SELECT 
+		if(s.oldkptnno is null and c.canceldetails=''Request For Change'',c.controlno,s.controlno) as controlno,
+		if(s.oldkptnno is null and c.canceldetails=''Request For Change'',c.kptnno,s.kptnno) as kptn,
+		if(s.oldkptnno is null and c.canceldetails=''Request For Change'',c.kptnno,s.kptnno) as referenceno,
+		IF(s1.sendername IS NULL,s.sendername,s1.sendername) AS sendername,
+		IF(s1.receivername IS NULL,s.receivername,s1.receivername) AS receivername,
+		s.transdate,c.cancelleddate AS cancelleddate,DATE_FORMAT(s.transdate,''%r'') AS time,
+		s.ReceiverContactNo as Receiver_Phone,
+		IF((SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1) IS NULL,
+		(SELECT CONCAT(a2.lastname,'', '',a2.firstname,'' '',a2.middlename) AS fullname FROM `kpOFW`.`SubOFWaccounts` a2 WHERE a2.username=s.operatorid AND a2.isactive=1  AND a2.isagent=1 LIMIT 1),
+		(SELECT CONCAT(a1.lastname,'', '',a1.firstname,'' '',a1.middlename) AS fullname FROM `kpOFW`.`OFWaccounts` a1 WHERE a1.username=s.operatorid AND a1.isactive=1 AND a1.isagent=1 LIMIT 1)
+		) AS Operator,s.Currency,if(c.canceldetails=''Cancel Sendout'',''Cancel'',c.canceldetails) as cancelreason,
+		if(s.isremote=1,s.RemoteBranch,s.branchcode) as branchcode,s.principal,s.charge,
+		if(c.cancelleddate is not null or c.cancelleddate<>'''',
+		if(c.canceldetails=''Return to Sender'',0,IF(c.canceldetails=''Request FOR CHANGE'' AND DATE(s.transdate)=DATE(c.cancelleddate),s.principal * -1,
+		IF(c.canceldetails=''Cancel Sendout'',if(DATE(s.transdate)=DATE(c.cancelleddate),s.principal * -1,if(YEAR(c.cancelleddate)=',_year,' AND DATE_FORMAT(c.cancelleddate,''%d'')=',_date,',s.principal * -1,0)),0))),
+		if(s.oldkptnno is not null and (if(length(s.oldkptnno)=21,(DATE_FORMAT(CONCAT(SUBSTRING(s.oldkptnno,20,2),SUBSTRING(s.oldkptnno,18,2),SUBSTRING(s.oldkptnno,7,2)),''%Y-%m-%d'')),
+		if(LENGTH(s.oldkptnno)=20,(DATE_FORMAT(CONCAT(SUBSTRING(s.oldkptnno,19,2),SUBSTRING(s.oldkptnno,17,2),SUBSTRING(s.oldkptnno,7,2)),''%Y-%m-%d'')),
+		DATE_FORMAT(CONCAT(SUBSTRING(s.oldkptnno,17,6),SUBSTRING(s.oldkptnno,4,2)),''%Y-%m-%d''))))<>date(s.transdate),s.principal * -1,0)) as adjprincipal,
+		if(c.cancelleddate is not null or c.cancelleddate<>'''',
+		if(c.canceldetails=''Return to Sender'',0,IF(c.canceldetails=''Request FOR CHANGE'' AND DATE(s.transdate)=DATE(c.cancelleddate),s.charge * -1,
+		IF(c.canceldetails=''Cancel Sendout'',if(DATE(s.transdate)=DATE(c.cancelleddate),s.charge * -1,if(YEAR(c.cancelleddate)=',_year,' AND DATE_FORMAT(c.cancelleddate,''%d'')=',_date,',s.charge * -1,0)),0))),
+		if(s.oldkptnno is not null and (IF(LENGTH(s.oldkptnno)=21,(DATE_FORMAT(CONCAT(SUBSTRING(s.oldkptnno,20,2),SUBSTRING(s.oldkptnno,18,2),SUBSTRING(s.oldkptnno,7,2)),''%Y-%m-%d'')),
+		IF(LENGTH(s.oldkptnno)=20,(DATE_FORMAT(CONCAT(SUBSTRING(s.oldkptnno,19,2),SUBSTRING(s.oldkptnno,17,2),SUBSTRING(s.oldkptnno,7,2)),''%Y-%m-%d'')),
+		DATE_FORMAT(CONCAT(SUBSTRING(s.oldkptnno,17,6),SUBSTRING(s.oldkptnno,4,2)),''%Y-%m-%d''))))<>date(s.transdate),s.charge * -1,0)) as adjCharge,
+		s.principal as socancelprincipal,s.charge as socancelcharge,
+		if(c.canceldetails=''Request For Change'',''***'',
+		IF(c.canceldetails=''Cancel Sendout'',IF(DATE(s.transdate)=DATE(c.cancelleddate),''**'',IF(YEAR(c.cancelleddate)=',_year,' AND DATE_FORMAT(c.cancelleddate,''%d'')=',_date,','''',''**'')),
+		IF(c.canceldetails=''RETURN TO Sender'' AND DATE_FORMAT(s.transdate,''%d'')=',_date,' AND YEAR(s.transdate)=',_year,',''*'',
+		IF(s.oldkptnno IS NOT NULL,''****'','''')))) AS flag,
+		IF(s.isremote=1,s.RemoteZoneCode,s.zonecode) AS zonecode,
+		(SELECT IF(sologs.commission IS NULL,0,sologs.commission) FROM `kpOFWLogs`.`MLExpressSendouts` sologs WHERE sologs.kptn=s.kptnno LIMIT 1) AS commission,s.operatorid
+		FROM ',_db,'.`sendout` s
+		LEFT JOIN ',_db,'.socancel c ON c.transdate=s.transdate
+		LEFT JOIN ',_db,'.sendout s1 ON s1.oldkptnno=c.kptnno 
+		WHERE 
+		s.kptnno LIKE ''%mlx%'' AND 
+		IF(c.canceldetails=''Cancel Sendout'' and (DATE(s.transdate)<>DATE(c.cancelleddate)),
+		YEAR(c.cancelleddate)=',_year,' AND DATE_FORMAT(c.cancelleddate,''%d'')=',_date,' or YEAR(s.transdate)=',_year,' AND DATE_FORMAT(s.transdate,''%d'')=',_date,',YEAR(s.transdate)=',_year,' AND DATE_FORMAT(s.transdate,''%d'')=',_date,' ) 
+		and s.operatorid=''',operatorid,'''
+		ORDER BY s.transdate ASC)x group by kptn
+		');
+	
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END $$
+DELIMITER ;

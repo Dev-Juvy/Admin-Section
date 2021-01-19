@@ -1,0 +1,120 @@
+DELIMITER $$
+
+USE `kppartners`$$
+
+DROP PROCEDURE IF EXISTS `HOgetdailysendoutHKD`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetdailysendoutHKD`(IN sotable VARCHAR(4), IN accountCode VARCHAR(35),IN _year VARCHAR(6),IN _txntype VARCHAR(50),IN _username VARCHAR(50),IN _role VARCHAR(50))
+BEGIN
+DECLARE txntype VARCHAR(100);
+IF _txntype = 'APIandWSC' OR _txntype = 'WSC'  THEN
+	SET txntype = 'sf.transactiontype IN (''3'')';
+ELSEIF _txntype = 'PAYMENTSOLUTION' THEN
+	SET txntype = 'sf.transactiontype IN (''5'',''7'',''8'')';
+ELSEIF _txntype = 'FILEUPLOAD' THEN
+	SET txntype = 'sf.transactiontype IN (''2'',''4'')';
+END IF;
+	SET @n_query= CONCAT('
+(SELECT 
+DISTINCT s.kptn,IF(s.cancelreason IS NOT NULL,IF(s.cancelreason=''CHANGE DETAILS'',''***'',
+IF(s.cancelreason=''CANCEL'',''**'',IF(s.cancelreason=''RETURN TO SENDER'',
+IF(DATE(s.transdate)<>DATE(s.cancelleddate),'''',''*''),''''))),
+if( (''',_txntype,'''=''PAYMENTSOLUTION'' and s.cancelreason is null) OR ((select cs.newkptn from `kppartnerstransactions`.`corporatecancelledSO` cs where cs.newkptn=s.kptn limit 1)=s.kptn),''****'','''')
+) AS flag,
+			IF(s.cancelleddate IS NULL OR s.cancelleddate='''' OR s.cancelleddate=''0000-00-00 00:00:00'',NULL,s.cancelleddate) AS cancelleddate,
+if( (''',_txntype,'''=''PAYMENTSOLUTION'' and s.cancelreason is null) OR ((select cs.newkptn from `kppartnerstransactions`.`corporatecancelledSO` cs where cs.newkptn=s.kptn limit 1)=s.kptn AND s.cancelreason=''CHANGE DETAILS''),''newkptnno'',s.cancelreason) AS cancelreason,
+			s.controlno,
+			IF(s.sendername IS NULL,CONCAT(s.senderlname,'', '' ,s.senderfname,'' '' ,s.sendermname),s.sendername) AS sendername,
+			s.transdate,DATE_FORMAT(s.transdate,''%H:%i:%S'') AS TIME,
+			CONCAT(',_year,',''-'',SUBSTRING(s.oldkptn,16,2),''-'',SUBSTRING(s.oldkptn,8,2)) AS sodate,
+			IF(s.receivername IS NULL,CONCAT(s.receiverlname,'', '',s.receiverfname,'' '',s.receivermname),s.receivername) AS receivername,
+			s.oldkptn,s.ReceiverContactNo AS Receiver_Phone,if(s.referenceno is null or s.referenceno='''',s.kptn,s.referenceno) as referenceno ,s.Currency,
+s.principal,s.charge,
+			IF(s.cancelreason=''CANCEL'',IF(DATE_FORMAT(s.cancelleddate,''%m%d'')=''',sotable,''' and date(s.transdate)<>date(s.cancelleddate),0,s.principal),s.principal) AS socancelprincipal ,
+			IF(s.cancelreason=''CANCEL'',IF(DATE_FORMAT(s.cancelleddate,''%m%d'')=''',sotable,''' and date(s.transdate)<>date(s.cancelleddate),0,s.charge),s.charge) AS socancelcharge,
+IF(  (s.cancelreason IN (''CHANGE DETAILS'',''CANCEL'')AND DATE(s.transdate)=DATE(s.cancelleddate)),s.principal * -1,
+IF ( (SELECT DATE(so.transdate) FROM `kppartnerstransactions`.`corporatesendouts` so WHERE so.kptn=(SELECT cs.kptn FROM `kppartnerstransactions`.`corporatecancelledSO` cs WHERE cs.newkptn=s.kptn LIMIT 1)) <>
+(SELECT DATE(cs.transdate) FROM `kppartnerstransactions`.`corporatecancelledSO` cs WHERE cs.newkptn=s.kptn LIMIT 1) ,s.principal * -1,0 ) 
+) AS adjprincipal,
+IF(  (s.cancelreason IN (''CHANGE DETAILS'',''CANCEL'')AND DATE(s.transdate)=DATE(s.cancelleddate)),s.charge * -1,
+IF ( (SELECT DATE(so.transdate) FROM `kppartnerstransactions`.`corporatesendouts` so WHERE so.kptn=(SELECT cs.kptn FROM `kppartnerstransactions`.`corporatecancelledSO` cs WHERE cs.newkptn=s.kptn LIMIT 1)) <>
+(SELECT DATE(cs.transdate) FROM `kppartnerstransactions`.`corporatecancelledSO` cs WHERE cs.newkptn=s.kptn LIMIT 1) ,s.charge * -1,0 ) 
+) AS adjcharge, s.branchcode,
+(
+if (
+(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu WHERE pu.userid=s.operatorid limit 1) is null,
+if( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss	INNER  JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=s.operatorid LIMIT 1) is null,
+    (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss INNER JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=s.operatorid LIMIT 1),
+    (SELECT bu.fullname FROM kpusers.sysuseraccounts ss	INNER JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=s.operatorid LIMIT 1)),
+(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu WHERE pu.userid=s.operatorid limit 1)
+)    
+) AS Operator,if(socom.commission is null,0,socom.commission) as commission,s.operatorid,s.HKDAmount,s.HKDCharge
+FROM kppartners.sendout',sotable,' s 
+INNER JOIN kppartnerstransactions.corporatesendouts so ON so.kptn=s.kptn
+INNER JOIN kppartners.sotxnref sf ON sf.accountcode=so.accountid AND sf.referenceno=so.referenceno
+LEFT JOIN `kpadminpartners`.`SendoutCommission` socom on socom.accountid=s.accountcode and socom.kptn=s.kptn and socom.isactive=1
+WHERE s.accountcode=''',accountCode,''' AND YEAR(s.transdate)=',_year,'  and ',txntype,'
+and IF (''',_role,''' = ''KP-PARTNERTELLER'',s.operatorid = ''',_username,''',1)
+AND (DATE(s.transdate)=DATE(s.cancelleddate) OR s.cancelleddate IS NULL OR s.cancelleddate=''0000-00-00 00:00:00'' OR s.cancelleddate='''' 
+OR IF(s.cancelreason=''CHANGE DETAILS'',DATE(s.transdate)<>DATE(s.cancelleddate),
+IF(s.cancelreason=''CANCEL'',if(DATE(s.transdate)<>DATE(s.cancelleddate),DATE_FORMAT(s.transdate,''%m%d'')=',sotable,',1),0))) GROUP BY s.kptn) 
+UNION 
+(SELECT
+DISTINCT cs.kptn,IF(cs.cancelreason IS NOT NULL,IF(cs.cancelreason=''CHANGE DETAILS'',''***'',
+IF(cancelreason=''CANCEL'',IF(DATE_FORMAT(cs.transdate,''%m%d'')=''',sotable,''','''',''**''),
+IF(cancelreason=''Return to Sender'',IF(DATE(cs.transdate)<>DATE(so.transdate),''*'',''''),''''))),
+if( (''',_txntype,'''=''PAYMENTSOLUTION'' and cs.cancelreason is null) OR (cs.newkptn=so.kptn),''****'','''')
+) AS flag, 
+                        IF(cs.transdate IS NULL OR cs.transdate='''' OR cs.transdate=''0000-00-00 00:00:00'',so.transdate,cs.transdate) AS cancelleddate,
+if( (''',_txntype,'''=''PAYMENTSOLUTION'' and cs.cancelreason is null) OR (cs.newkptn=so.kptn and cs.cancelreason<>''CHANGE DETAILS''),''newkptnno'',cs.cancelreason) AS cancelreason,
+			cs.controlno,
+			CONCAT(cs.senderlname,'', '',cs.senderfname,'' '',cs.sendermname) AS sendername,
+			so.transdate,DATE_FORMAT(so.transdate,''%H:%i:%S'') AS TIME,
+			CONCAT(',_year,',''-'',SUBSTRING(so.oldkptn,16,2),''-'',SUBSTRING(so.oldkptn,8,2)) AS sodate,
+			CONCAT(cs.receiverlname,'', '',cs.receiverfname,'' '',cs.receivermname) AS receivername,
+			so.oldkptn,''-'' AS Receiver_Phone,if(cs.referenceno is null or cs.referenceno='''',cs.kptn,cs.referenceno) as referenceno,so.Currency,
+			so.principal,so.chargeamount as charge,
+			IF(cancelreason=''CANCEL'',IF(DATE_FORMAT(cs.transdate,''%m%d'')=''',sotable,''',0,so.principal),so.principal) AS socancelprincipal ,
+			IF(cancelreason=''CANCEL'',IF(DATE_FORMAT(cs.transdate,''%m%d'')=''',sotable,''',0,so.chargeamount),so.chargeamount) AS socancelcharge,
+IF(cs.cancelreason IS NOT NULL,
+IF(cs.cancelreason=''CANCEL'' AND DATE_FORMAT(cs.transdate,''%m%d'')=''',sotable,''',so.principal * -1,
+IF(cancelreason=''Return to Sender'',IF(DATE(cs.transdate)<>DATE(so.transdate) 
+AND (SELECT DATE_FORMAT(cso.transdate,''%m%d'') FROM `kppartnerstransactions`.`corporatecancelledSO` cso WHERE cso.cancelreason=''Change Details'' AND cso.newkptn=cs.kptn LIMIT 1) = ''',sotable,''',
+so.principal * -1,0),0)),
+IF(CONCAT(',_year,',''-'',SUBSTRING(so.oldkptn,16,2),''-'',SUBSTRING(so.oldkptn,8,2))=DATE(cs.transdate),0,
+if( (''',_txntype,'''=''PAYMENTSOLUTION'' and cs.cancelreason is null) OR (cs.newkptn=so.kptn and ''',_txntype,'''<>''PAYMENTSOLUTION''),so.principal * -1,0)
+)) AS  adjprincipal,
+IF(cs.cancelreason IS NOT NULL,
+IF(cs.cancelreason=''CANCEL'' AND DATE_FORMAT(cs.transdate,''%m%d'')=''',sotable,''',so.chargeamount * -1,
+IF(cancelreason=''Return to Sender'',IF(DATE(cs.transdate)<>DATE(so.transdate) 
+AND (SELECT DATE_FORMAT(cso.transdate,''%m%d'') FROM `kppartnerstransactions`.`corporatecancelledSO` cso WHERE cso.cancelreason=''Change Details'' AND cso.newkptn=cs.kptn LIMIT 1) = ''',sotable,''',
+so.chargeamount * -1,0),0)),
+IF(CONCAT(',_year,',''-'',SUBSTRING(so.oldkptn,16,2),''-'',SUBSTRING(so.oldkptn,8,2))=DATE(cs.transdate),0,
+if( (''',_txntype,'''=''PAYMENTSOLUTION'' and cs.cancelreason is null) OR (cs.newkptn=so.kptn and ''',_txntype,'''<>''PAYMENTSOLUTION''),so.chargeamount * -1,0)
+)) AS  adjcharge,cs.cancbybranchcode AS branchcode,
+(
+if(
+(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu WHERE pu.userid=cs.cancbyoperatorid limit 1) is null,
+if( (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=cs.cancbyoperatorid LIMIT 1) is null,
+    (SELECT bu.fullname FROM kpusers.adminsysuseraccounts ss LEFT JOIN  kpusers.adminbranchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=cs.cancbyoperatorid LIMIT 1),
+    (SELECT bu.fullname FROM kpusers.sysuseraccounts ss LEFT JOIN  kpusers.branchusers bu ON bu.resourceid=ss.resourceid WHERE ss.userlogin=cs.cancbyoperatorid LIMIT 1)),
+(SELECT CONCAT(pu.lastname,'', '',pu.firstname,'' '',pu.middlename) FROM `kpadminpartners`.`partnersusers` pu WHERE pu.userid=cs.cancbyoperatorid limit 1)
+)
+) AS Operator,if(socom	.commission is null,0,socom.commission) as commission,cs.cancbyoperatorid as operatorid,0 as HKDAmount,0 as HKDCharge
+FROM `kppartnerstransactions`.`corporatecancelledSO` cs
+INNER JOIN `kppartnerstransactions`.`corporatesendouts` so ON so.kptn=cs.kptn AND so.accountid=cs.accountid
+INNER JOIN kppartners.sotxnref sf ON sf.accountcode=cs.accountid AND sf.referenceno=if(cs.referenceno='''',cs.kptn,cs.referenceno)
+LEFT JOIN `kpadminpartners`.`SendoutCommission` socom on socom.accountid=cs.accountid and socom.kptn=cs.kptn and socom.isactive=1
+WHERE cs.accountid=''',accountCode,''' 
+and ',txntype,' and IF (''',_role,''' = ''KP-PARTNERTELLER'',cs.cancbyoperatorid = ''',_username,''',1)
+AND IF(DATE(so.transdate) IS NOT NULL,DATE(so.transdate) <> DATE(cs.transdate),1) 
+AND IF(cancelreason=''RETURN TO SENDER'',DATE_FORMAT(so.transdate,''%m%d'')=''',sotable,''' AND YEAR(so.transdate)=',_year,' ,1)
+AND IF(cancelreason=''CANCEL'',DATE_FORMAT(cs.transdate,''%m%d'')=''',sotable,''' AND YEAR(cs.transdate)=',_year,' ,1)
+AND IF(cancelreason=''CHANGE DETAILS'',0,1) GROUP BY cs.kptn) 
+');
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

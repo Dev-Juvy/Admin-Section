@@ -1,0 +1,44 @@
+DELIMITER $$
+
+USE `kpORNO`$$
+
+DROP PROCEDURE IF EXISTS `HOgetZReading`$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `HOgetZReading`(IN accountCode VARCHAR(30),IN _date VARCHAR(15))
+BEGIN
+DECLARE _monthdate VARCHAR(4);
+SET _monthdate = DATE_FORMAT(_date,'%m%d');
+		
+SET @n_query= CONCAT('select * from(select accountid,tin,accreditationno,permitno,MIN,serverno,(DATEDIFF(DATE(DATE),DATE(firsttxndate))+1) AS seqno,
+sum(sales) as sales,
+(SELECT SUM(chargeamount) FROM (SELECT chargeamount FROM `kppartnerstransactions`.`corporatesendouts` cs 
+INNER JOIN `kpORNO`.`orDetails` a ON a.refno=cs.referenceno 
+WHERE  cs.accountid=''',accountCode,'''  AND DATE(cs.transdate)<DATE(''',_date,''') GROUP BY refno)X) as grandtotalold,
+vatable,
+
+(if( (CHAR_LENGTH(CONVERT(SUBSTRING_INDEX(RIGHT(lastor,9),''/'',9),UNSIGNED INTEGER)))<=2,
+LPAD(CONVERT(SUBSTRING_INDEX(RIGHT(lastor,9),''/'',9),UNSIGNED INTEGER),3,0),
+CONVERT(SUBSTRING_INDEX(RIGHT(lastor,9),''/'',9),UNSIGNED INTEGER) ) ) as xseqno,
+lastor,
+
+DATE,serialno,firsttxndate
+from (SELECT a.accountid,concat(b.tin,''-'',c.locationcode) AS tin,
+c.acr AS accreditationno,c.pn AS permitno,c.mn AS MIN,'''' AS serverno,
+s.charge as sales,(SELECT SUM(e.servicefee) FROM `kpORNO`.`orDetails` e WHERE DATE(e.datecreated)<date(''',_date,''')) AS grandtotalold,
+0 AS vatable,(SELECT  f.orno FROM `kpORNO`.`orDetails` f  WHERE DATE(f.datecreated)<=date(''',_date,''') ORDER BY f.datecreated DESC LIMIT 1) AS lastor,
+a.datecreated AS DATE,c.sn AS serialno,
+(SELECT  DATE(d.datecreated) FROM `kpORNO`.`orDetails` d where d.datecreated is not null ORDER BY d.datecreated ASC LIMIT 1) AS firsttxndate
+FROM `kpORNO`.`orDetails` a
+INNER JOIN  kppartners.sendout',_monthdate,' s on a.accountid=s.accountcode and a.refno=s.referenceno
+INNER JOIN `kpadminpartners`.`accountdetail` b ON b.accountid=a.accountid
+INNER JOIN `kpadminpartners`.`accountlist` c ON c.accountid=a.accountid
+INNER JOIN kppartners.sotxnref sf ON sf.accountcode=a.accountid AND sf.referenceno=a.refno
+WHERE DATE(datecreated)=date(''',_date,''') AND a.accountid=''',accountCode,''' AND sf.transactiontype IN (''3'') 
+group by a.refno)x)x where DATE is not null;
+');
+													
+PREPARE StrSQL FROM @n_query;
+EXECUTE StrSQL;
+END$$
+
+DELIMITER ;

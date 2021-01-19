@@ -1,0 +1,29 @@
+DELIMITER $$
+
+USE `kppartners`$$
+
+DROP PROCEDURE IF EXISTS `HOgetdailySMMLSTRPO`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetdailySMMLSTRPO`(IN potable VARCHAR(4), IN accountCode VARCHAR(35),IN _year VARCHAR(6))
+BEGIN
+SET @n_query= CONCAT('
+select bcode,bname,itemcount,principal,commission,total from (
+SELECT 
+DISTINCT if(a.locationCode is null,''-'',a.locationCode) as bcode,
+a.accountname as bname,count(IF(oldkptn IS NULL,p.kptn,oldkptn)) AS itemcount,
+sum(p.principal) as principal,sum(if(pocom.commission is null,0,pocom.commission)) as commission,
+(sum(p.principal)+sum(if(pocom.commission is null,0,pocom.commission))) as total
+FROM kppartners.payout',potable,'  p
+INNER JOIN kppartners.potxnref sf ON sf.accountcode=p.accountcode AND sf.referenceno=p.referenceno
+LEFT JOIN `kpadminpartners`.`PayoutCommission` pocom ON  pocom.kptn=p.kptn AND pocom.isactive=1
+inner join kpadminpartners.accountlist a on a.accountid=''',accountCode,'''
+WHERE p.accountcode=''',accountCode,'''  
+AND YEAR(p.claimeddate)=',_year,'  AND sf.transactiontype IN (''3'')
+GROUP BY a.accountname )x;
+');
+	PREPARE n_StrSQL FROM @n_query;
+	EXECUTE n_StrSQL;
+	DEALLOCATE PREPARE n_StrSQL;
+    END$$
+
+DELIMITER ;

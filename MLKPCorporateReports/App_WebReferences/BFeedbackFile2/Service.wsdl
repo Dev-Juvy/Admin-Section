@@ -1,0 +1,2323 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tm="http://microsoft.com/wsdl/mime/textMatching/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:tns="http://localhost/" xmlns:s="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" targetNamespace="http://localhost/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsdl:documentation xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">MLKP Web Service</wsdl:documentation>
+  <wsdl:types>
+    <s:schema elementFormDefault="qualified" targetNamespace="http://localhost/">
+      <s:element name="getCurrency">
+        <s:complexType />
+      </s:element>
+      <s:element name="getCurrencyResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getCurrencyResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="ServResponse">
+        <s:sequence>
+          <s:element minOccurs="1" maxOccurs="1" name="rescode" type="s:int" />
+          <s:element minOccurs="0" maxOccurs="1" name="msge" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="dsCurrency">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsPartners">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsMormonsDaily">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsMormonsMonthly">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsGlobeDaily">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsManilaWaterDaily">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsNorkisDaily">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsManilaDepositDaily">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsPioneerDaily">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsManilaWaterRange">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsVecoDailyHeader">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsVecoDailyDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsVecoDailyFooter">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsPalDailyHeader">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsPalDailyDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsPalDailyFooter">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsPLDTDailyHeader">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsPLDTDailyDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsPLDTDailyFooter">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsFDCDailyDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsPalecoDailyDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsBWIDailyDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsPhilHealthDailyDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsCTBCBodyDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsCTBCHeaderDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsCTBCFooterDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsNECODetails">
+            <s:complexType>
+              <s:sequence>
+                <s:any minOccurs="0" maxOccurs="unbounded" namespace="http://www.w3.org/2001/XMLSchema" processContents="lax" />
+                <s:any minOccurs="1" namespace="urn:schemas-microsoft-com:xml-diffgram-v1" processContents="lax" />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsMCWDDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:any minOccurs="0" maxOccurs="unbounded" namespace="http://www.w3.org/2001/XMLSchema" processContents="lax" />
+                <s:any minOccurs="1" namespace="urn:schemas-microsoft-com:xml-diffgram-v1" processContents="lax" />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsPSSLAIDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsSMARTDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dsMALAYANDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:element ref="s:schema" />
+                <s:any />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dtSubicDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:any minOccurs="0" maxOccurs="unbounded" namespace="http://www.w3.org/2001/XMLSchema" processContents="lax" />
+                <s:any minOccurs="1" namespace="urn:schemas-microsoft-com:xml-diffgram-v1" processContents="lax" />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="partnersClassification">
+            <s:complexType>
+              <s:sequence>
+                <s:any minOccurs="0" maxOccurs="unbounded" namespace="http://www.w3.org/2001/XMLSchema" processContents="lax" />
+                <s:any minOccurs="1" namespace="urn:schemas-microsoft-com:xml-diffgram-v1" processContents="lax" />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dtPAGIBIGDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:any minOccurs="0" maxOccurs="unbounded" namespace="http://www.w3.org/2001/XMLSchema" processContents="lax" />
+                <s:any minOccurs="1" namespace="urn:schemas-microsoft-com:xml-diffgram-v1" processContents="lax" />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dtNONECODetails">
+            <s:complexType>
+              <s:sequence>
+                <s:any minOccurs="0" maxOccurs="unbounded" namespace="http://www.w3.org/2001/XMLSchema" processContents="lax" />
+                <s:any minOccurs="1" namespace="urn:schemas-microsoft-com:xml-diffgram-v1" processContents="lax" />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dtMIGHTYDetails">
+            <s:complexType>
+              <s:sequence>
+                <s:any minOccurs="0" maxOccurs="unbounded" namespace="http://www.w3.org/2001/XMLSchema" processContents="lax" />
+                <s:any minOccurs="1" namespace="urn:schemas-microsoft-com:xml-diffgram-v1" processContents="lax" />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dtCurrency">
+            <s:complexType>
+              <s:sequence>
+                <s:any minOccurs="0" maxOccurs="unbounded" namespace="http://www.w3.org/2001/XMLSchema" processContents="lax" />
+                <s:any minOccurs="1" namespace="urn:schemas-microsoft-com:xml-diffgram-v1" processContents="lax" />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="dtPartners">
+            <s:complexType>
+              <s:sequence>
+                <s:any minOccurs="0" maxOccurs="unbounded" namespace="http://www.w3.org/2001/XMLSchema" processContents="lax" />
+                <s:any minOccurs="1" namespace="urn:schemas-microsoft-com:xml-diffgram-v1" processContents="lax" />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="0" maxOccurs="1" name="Data">
+            <s:complexType>
+              <s:sequence>
+                <s:any minOccurs="0" maxOccurs="unbounded" namespace="http://www.w3.org/2001/XMLSchema" processContents="lax" />
+                <s:any minOccurs="1" namespace="urn:schemas-microsoft-com:xml-diffgram-v1" processContents="lax" />
+              </s:sequence>
+            </s:complexType>
+          </s:element>
+          <s:element minOccurs="1" maxOccurs="1" name="Amount" type="s:double" />
+          <s:element minOccurs="1" maxOccurs="1" name="TotalCharge" type="s:double" />
+          <s:element minOccurs="0" maxOccurs="1" name="TotalTrans" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="Filler" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="TotalAmount" type="s:string" />
+        </s:sequence>
+      </s:complexType>
+      <s:element name="getPartners">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getPartnersResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getPartnersResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetMormonsDailyBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetMormonsDailyBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetMormonsDailyBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetMormonsMonthlyBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="MonthlySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="1" maxOccurs="1" name="MonthDays" type="s:int" />
+            <s:element minOccurs="0" maxOccurs="1" name="Year" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetMormonsMonthlyBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetMormonsMonthlyBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetManilaWaterRangeBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="1" maxOccurs="1" name="from" type="s:dateTime" />
+            <s:element minOccurs="1" maxOccurs="1" name="to" type="s:dateTime" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetManilaWaterRangeBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetManilaWaterRangeBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetMormonsDateRangeBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="1" maxOccurs="1" name="from" type="s:dateTime" />
+            <s:element minOccurs="1" maxOccurs="1" name="to" type="s:dateTime" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetMormonsDateRangeBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetMormonsDateRangeBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetVecoDailyDetailsBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetVecoDailyDetailsBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetVecoDailyDetailsBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetVecoDailyFooterBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetVecoDailyFooterBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetVecoDailyFooterBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetVecoDailyHeaderBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetVecoDailyHeaderBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetVecoDailyHeaderBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetGlobeDailyBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetGlobeDailyBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetGlobeDailyBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetManilaWaterDailyBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetManilaWaterDailyBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetManilaWaterDailyBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetNorkisDailyBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetNorkisDailyBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetNorkisDailyBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetManilaDepositDailyBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetManilaDepositDailyBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetManilaDepositDailyBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetPioneerDailyBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetPioneerDailyBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetPioneerDailyBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetPalDailyHeaderBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetPalDailyHeaderBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetPalDailyHeaderBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetPalDailyDetailsBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetPalDailyDetailsBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetPalDailyDetailsBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetPalDailyFooterBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetPalDailyFooterBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetPalDailyFooterBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetPLDTDailyHeaderBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetPLDTDailyHeaderBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetPLDTDailyHeaderBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetPLDTDailyDetailsBillspayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetPLDTDailyDetailsBillspaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetPLDTDailyDetailsBillspaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetPLDTDailyFooterBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetPLDTDailyFooterBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetPLDTDailyFooterBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetFDCDailyDetailsBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetFDCDailyDetailsBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetFDCDailyDetailsBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getPalecoDailyDetailsBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getPalecoDailyDetailsBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getPalecoDailyDetailsBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getBPWIDailyDetailsBillsPay">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getBPWIDailyDetailsBillsPayResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getBPWIDailyDetailsBillsPayResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getPhilHealthDailyIndividualDetailsBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="From" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="To" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getPhilHealthDailyIndividualDetailsBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getPhilHealthDailyIndividualDetailsBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getCTBCHeader">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getCTBCHeaderResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getCTBCHeaderResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getCTBCBody">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getCTBCBodyResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getCTBCBodyResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getCTBCFooter">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getCTBCFooterResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getCTBCFooterResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getNECODailyBillspayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getNECODailyBillspaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getNECODailyBillspaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getMCWDDailyBillspayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+            <s:element minOccurs="1" maxOccurs="1" name="isHeader" type="s:short" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getMCWDDailyBillspaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getMCWDDailyBillspaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getSubicWaterDailyBillspayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getSubicWaterDailyBillspaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getSubicWaterDailyBillspaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="AddClassification">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="ClassDefinition" type="s:string" />
+            <s:element minOccurs="1" maxOccurs="1" name="Order" type="s:decimal" />
+            <s:element minOccurs="1" maxOccurs="1" name="status" type="s:short" />
+            <s:element minOccurs="0" maxOccurs="1" name="createdby" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="AddClassificationResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="AddClassificationResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="UpdateClassification">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="ClassID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="ClassDefinition" type="s:string" />
+            <s:element minOccurs="1" maxOccurs="1" name="order" type="s:decimal" />
+            <s:element minOccurs="1" maxOccurs="1" name="status" type="s:short" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="UpdateClassificationResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="UpdateClassificationResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getClassifications">
+        <s:complexType />
+      </s:element>
+      <s:element name="getClassificationsResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getClassificationsResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getClassification">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="ClassId" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getClassificationResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getClassificationResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getPSSLAIDailyBillsPayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getPSSLAIDailyBillsPaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getPSSLAIDailyBillsPaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getSMARTDailyBillspayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+            <s:element minOccurs="1" maxOccurs="1" name="indication" type="s:short" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getSMARTDailyBillspaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getSMARTDailyBillspaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getMALAYANDailyBillspayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+            <s:element minOccurs="1" maxOccurs="1" name="indication" type="s:short" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getMALAYANDailyBillspaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getMALAYANDailyBillspaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getPAGIBIGDailyBillspayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getPAGIBIGDailyBillspaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getPAGIBIGDailyBillspaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getNONECODailyBillspayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+            <s:element minOccurs="1" maxOccurs="1" name="isHeader" type="s:boolean" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getNONECODailyBillspaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getNONECODailyBillspaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getESAMELCODailyBillspayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+            <s:element minOccurs="1" maxOccurs="1" name="isHeader" type="s:boolean" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getESAMELCODailyBillspaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getESAMELCODailyBillspaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getMIGHTYDailyBillspayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getMIGHTYDailyBillspaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getMIGHTYDailyBillspaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getANECODailyBillspayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getANECODailyBillspaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getANECODailyBillspaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getAUBDailyBillspayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="DailySendout" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Date" type="s:string" />
+            <s:element minOccurs="1" maxOccurs="1" name="type" type="tns:GetType" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:simpleType name="GetType">
+        <s:restriction base="s:string">
+          <s:enumeration value="HEADER" />
+          <s:enumeration value="BODY" />
+          <s:enumeration value="FOOTER" />
+        </s:restriction>
+      </s:simpleType>
+      <s:element name="getAUBDailyBillspaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getAUBDailyBillspaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getBatelec2DailyDatailsBillspayment">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="CompanyID" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Currency" type="s:string" />
+            <s:element minOccurs="1" maxOccurs="1" name="from" type="s:dateTime" />
+            <s:element minOccurs="1" maxOccurs="1" name="to" type="s:dateTime" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="getBatelec2DailyDatailsBillspaymentResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="getBatelec2DailyDatailsBillspaymentResult" type="tns:ServResponse" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+    </s:schema>
+  </wsdl:types>
+  <wsdl:message name="getCurrencySoapIn">
+    <wsdl:part name="parameters" element="tns:getCurrency" />
+  </wsdl:message>
+  <wsdl:message name="getCurrencySoapOut">
+    <wsdl:part name="parameters" element="tns:getCurrencyResponse" />
+  </wsdl:message>
+  <wsdl:message name="getPartnersSoapIn">
+    <wsdl:part name="parameters" element="tns:getPartners" />
+  </wsdl:message>
+  <wsdl:message name="getPartnersSoapOut">
+    <wsdl:part name="parameters" element="tns:getPartnersResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetMormonsDailyBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetMormonsDailyBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetMormonsDailyBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetMormonsDailyBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetMormonsMonthlyBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetMormonsMonthlyBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetMormonsMonthlyBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetMormonsMonthlyBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetManilaWaterRangeBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetManilaWaterRangeBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetManilaWaterRangeBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetManilaWaterRangeBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetMormonsDateRangeBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetMormonsDateRangeBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetMormonsDateRangeBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetMormonsDateRangeBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetVecoDailyDetailsBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetVecoDailyDetailsBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetVecoDailyDetailsBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetVecoDailyDetailsBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetVecoDailyFooterBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetVecoDailyFooterBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetVecoDailyFooterBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetVecoDailyFooterBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetVecoDailyHeaderBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetVecoDailyHeaderBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetVecoDailyHeaderBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetVecoDailyHeaderBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetGlobeDailyBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetGlobeDailyBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetGlobeDailyBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetGlobeDailyBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetManilaWaterDailyBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetManilaWaterDailyBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetManilaWaterDailyBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetManilaWaterDailyBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetNorkisDailyBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetNorkisDailyBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetNorkisDailyBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetNorkisDailyBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetManilaDepositDailyBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetManilaDepositDailyBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetManilaDepositDailyBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetManilaDepositDailyBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetPioneerDailyBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetPioneerDailyBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetPioneerDailyBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetPioneerDailyBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetPalDailyHeaderBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetPalDailyHeaderBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetPalDailyHeaderBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetPalDailyHeaderBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetPalDailyDetailsBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetPalDailyDetailsBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetPalDailyDetailsBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetPalDailyDetailsBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetPalDailyFooterBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetPalDailyFooterBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetPalDailyFooterBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetPalDailyFooterBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetPLDTDailyHeaderBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetPLDTDailyHeaderBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetPLDTDailyHeaderBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetPLDTDailyHeaderBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetPLDTDailyDetailsBillspaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetPLDTDailyDetailsBillspayment" />
+  </wsdl:message>
+  <wsdl:message name="GetPLDTDailyDetailsBillspaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetPLDTDailyDetailsBillspaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetPLDTDailyFooterBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetPLDTDailyFooterBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetPLDTDailyFooterBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetPLDTDailyFooterBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetFDCDailyDetailsBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:GetFDCDailyDetailsBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="GetFDCDailyDetailsBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:GetFDCDailyDetailsBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="getPalecoDailyDetailsBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:getPalecoDailyDetailsBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="getPalecoDailyDetailsBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:getPalecoDailyDetailsBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="getBPWIDailyDetailsBillsPaySoapIn">
+    <wsdl:part name="parameters" element="tns:getBPWIDailyDetailsBillsPay" />
+  </wsdl:message>
+  <wsdl:message name="getBPWIDailyDetailsBillsPaySoapOut">
+    <wsdl:part name="parameters" element="tns:getBPWIDailyDetailsBillsPayResponse" />
+  </wsdl:message>
+  <wsdl:message name="getPhilHealthDailyIndividualDetailsBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:getPhilHealthDailyIndividualDetailsBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="getPhilHealthDailyIndividualDetailsBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:getPhilHealthDailyIndividualDetailsBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="getCTBCHeaderSoapIn">
+    <wsdl:part name="parameters" element="tns:getCTBCHeader" />
+  </wsdl:message>
+  <wsdl:message name="getCTBCHeaderSoapOut">
+    <wsdl:part name="parameters" element="tns:getCTBCHeaderResponse" />
+  </wsdl:message>
+  <wsdl:message name="getCTBCBodySoapIn">
+    <wsdl:part name="parameters" element="tns:getCTBCBody" />
+  </wsdl:message>
+  <wsdl:message name="getCTBCBodySoapOut">
+    <wsdl:part name="parameters" element="tns:getCTBCBodyResponse" />
+  </wsdl:message>
+  <wsdl:message name="getCTBCFooterSoapIn">
+    <wsdl:part name="parameters" element="tns:getCTBCFooter" />
+  </wsdl:message>
+  <wsdl:message name="getCTBCFooterSoapOut">
+    <wsdl:part name="parameters" element="tns:getCTBCFooterResponse" />
+  </wsdl:message>
+  <wsdl:message name="getNECODailyBillspaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:getNECODailyBillspayment" />
+  </wsdl:message>
+  <wsdl:message name="getNECODailyBillspaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:getNECODailyBillspaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="getMCWDDailyBillspaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:getMCWDDailyBillspayment" />
+  </wsdl:message>
+  <wsdl:message name="getMCWDDailyBillspaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:getMCWDDailyBillspaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="getSubicWaterDailyBillspaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:getSubicWaterDailyBillspayment" />
+  </wsdl:message>
+  <wsdl:message name="getSubicWaterDailyBillspaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:getSubicWaterDailyBillspaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="AddClassificationSoapIn">
+    <wsdl:part name="parameters" element="tns:AddClassification" />
+  </wsdl:message>
+  <wsdl:message name="AddClassificationSoapOut">
+    <wsdl:part name="parameters" element="tns:AddClassificationResponse" />
+  </wsdl:message>
+  <wsdl:message name="UpdateClassificationSoapIn">
+    <wsdl:part name="parameters" element="tns:UpdateClassification" />
+  </wsdl:message>
+  <wsdl:message name="UpdateClassificationSoapOut">
+    <wsdl:part name="parameters" element="tns:UpdateClassificationResponse" />
+  </wsdl:message>
+  <wsdl:message name="getClassificationsSoapIn">
+    <wsdl:part name="parameters" element="tns:getClassifications" />
+  </wsdl:message>
+  <wsdl:message name="getClassificationsSoapOut">
+    <wsdl:part name="parameters" element="tns:getClassificationsResponse" />
+  </wsdl:message>
+  <wsdl:message name="getClassificationSoapIn">
+    <wsdl:part name="parameters" element="tns:getClassification" />
+  </wsdl:message>
+  <wsdl:message name="getClassificationSoapOut">
+    <wsdl:part name="parameters" element="tns:getClassificationResponse" />
+  </wsdl:message>
+  <wsdl:message name="getPSSLAIDailyBillsPaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:getPSSLAIDailyBillsPayment" />
+  </wsdl:message>
+  <wsdl:message name="getPSSLAIDailyBillsPaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:getPSSLAIDailyBillsPaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="getSMARTDailyBillspaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:getSMARTDailyBillspayment" />
+  </wsdl:message>
+  <wsdl:message name="getSMARTDailyBillspaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:getSMARTDailyBillspaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="getMALAYANDailyBillspaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:getMALAYANDailyBillspayment" />
+  </wsdl:message>
+  <wsdl:message name="getMALAYANDailyBillspaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:getMALAYANDailyBillspaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="getPAGIBIGDailyBillspaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:getPAGIBIGDailyBillspayment" />
+  </wsdl:message>
+  <wsdl:message name="getPAGIBIGDailyBillspaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:getPAGIBIGDailyBillspaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="getNONECODailyBillspaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:getNONECODailyBillspayment" />
+  </wsdl:message>
+  <wsdl:message name="getNONECODailyBillspaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:getNONECODailyBillspaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="getESAMELCODailyBillspaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:getESAMELCODailyBillspayment" />
+  </wsdl:message>
+  <wsdl:message name="getESAMELCODailyBillspaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:getESAMELCODailyBillspaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="getMIGHTYDailyBillspaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:getMIGHTYDailyBillspayment" />
+  </wsdl:message>
+  <wsdl:message name="getMIGHTYDailyBillspaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:getMIGHTYDailyBillspaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="getANECODailyBillspaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:getANECODailyBillspayment" />
+  </wsdl:message>
+  <wsdl:message name="getANECODailyBillspaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:getANECODailyBillspaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="getAUBDailyBillspaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:getAUBDailyBillspayment" />
+  </wsdl:message>
+  <wsdl:message name="getAUBDailyBillspaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:getAUBDailyBillspaymentResponse" />
+  </wsdl:message>
+  <wsdl:message name="getBatelec2DailyDatailsBillspaymentSoapIn">
+    <wsdl:part name="parameters" element="tns:getBatelec2DailyDatailsBillspayment" />
+  </wsdl:message>
+  <wsdl:message name="getBatelec2DailyDatailsBillspaymentSoapOut">
+    <wsdl:part name="parameters" element="tns:getBatelec2DailyDatailsBillspaymentResponse" />
+  </wsdl:message>
+  <wsdl:portType name="MLhuillierSoap">
+    <wsdl:operation name="getCurrency">
+      <wsdl:input message="tns:getCurrencySoapIn" />
+      <wsdl:output message="tns:getCurrencySoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getPartners">
+      <wsdl:input message="tns:getPartnersSoapIn" />
+      <wsdl:output message="tns:getPartnersSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetMormonsDailyBillsPayment">
+      <wsdl:input message="tns:GetMormonsDailyBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetMormonsDailyBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetMormonsMonthlyBillsPayment">
+      <wsdl:input message="tns:GetMormonsMonthlyBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetMormonsMonthlyBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetManilaWaterRangeBillsPayment">
+      <wsdl:input message="tns:GetManilaWaterRangeBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetManilaWaterRangeBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetMormonsDateRangeBillsPayment">
+      <wsdl:input message="tns:GetMormonsDateRangeBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetMormonsDateRangeBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetVecoDailyDetailsBillsPayment">
+      <wsdl:input message="tns:GetVecoDailyDetailsBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetVecoDailyDetailsBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetVecoDailyFooterBillsPayment">
+      <wsdl:input message="tns:GetVecoDailyFooterBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetVecoDailyFooterBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetVecoDailyHeaderBillsPayment">
+      <wsdl:input message="tns:GetVecoDailyHeaderBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetVecoDailyHeaderBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetGlobeDailyBillsPayment">
+      <wsdl:input message="tns:GetGlobeDailyBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetGlobeDailyBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetManilaWaterDailyBillsPayment">
+      <wsdl:input message="tns:GetManilaWaterDailyBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetManilaWaterDailyBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetNorkisDailyBillsPayment">
+      <wsdl:input message="tns:GetNorkisDailyBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetNorkisDailyBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetManilaDepositDailyBillsPayment">
+      <wsdl:input message="tns:GetManilaDepositDailyBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetManilaDepositDailyBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetPioneerDailyBillsPayment">
+      <wsdl:input message="tns:GetPioneerDailyBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetPioneerDailyBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetPalDailyHeaderBillsPayment">
+      <wsdl:input message="tns:GetPalDailyHeaderBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetPalDailyHeaderBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetPalDailyDetailsBillsPayment">
+      <wsdl:input message="tns:GetPalDailyDetailsBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetPalDailyDetailsBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetPalDailyFooterBillsPayment">
+      <wsdl:input message="tns:GetPalDailyFooterBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetPalDailyFooterBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetPLDTDailyHeaderBillsPayment">
+      <wsdl:input message="tns:GetPLDTDailyHeaderBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetPLDTDailyHeaderBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetPLDTDailyDetailsBillspayment">
+      <wsdl:input message="tns:GetPLDTDailyDetailsBillspaymentSoapIn" />
+      <wsdl:output message="tns:GetPLDTDailyDetailsBillspaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetPLDTDailyFooterBillsPayment">
+      <wsdl:input message="tns:GetPLDTDailyFooterBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetPLDTDailyFooterBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetFDCDailyDetailsBillsPayment">
+      <wsdl:input message="tns:GetFDCDailyDetailsBillsPaymentSoapIn" />
+      <wsdl:output message="tns:GetFDCDailyDetailsBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getPalecoDailyDetailsBillsPayment">
+      <wsdl:input message="tns:getPalecoDailyDetailsBillsPaymentSoapIn" />
+      <wsdl:output message="tns:getPalecoDailyDetailsBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getBPWIDailyDetailsBillsPay">
+      <wsdl:input message="tns:getBPWIDailyDetailsBillsPaySoapIn" />
+      <wsdl:output message="tns:getBPWIDailyDetailsBillsPaySoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getPhilHealthDailyIndividualDetailsBillsPayment">
+      <wsdl:input message="tns:getPhilHealthDailyIndividualDetailsBillsPaymentSoapIn" />
+      <wsdl:output message="tns:getPhilHealthDailyIndividualDetailsBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getCTBCHeader">
+      <wsdl:input message="tns:getCTBCHeaderSoapIn" />
+      <wsdl:output message="tns:getCTBCHeaderSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getCTBCBody">
+      <wsdl:input message="tns:getCTBCBodySoapIn" />
+      <wsdl:output message="tns:getCTBCBodySoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getCTBCFooter">
+      <wsdl:input message="tns:getCTBCFooterSoapIn" />
+      <wsdl:output message="tns:getCTBCFooterSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getNECODailyBillspayment">
+      <wsdl:input message="tns:getNECODailyBillspaymentSoapIn" />
+      <wsdl:output message="tns:getNECODailyBillspaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getMCWDDailyBillspayment">
+      <wsdl:input message="tns:getMCWDDailyBillspaymentSoapIn" />
+      <wsdl:output message="tns:getMCWDDailyBillspaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getSubicWaterDailyBillspayment">
+      <wsdl:input message="tns:getSubicWaterDailyBillspaymentSoapIn" />
+      <wsdl:output message="tns:getSubicWaterDailyBillspaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="AddClassification">
+      <wsdl:input message="tns:AddClassificationSoapIn" />
+      <wsdl:output message="tns:AddClassificationSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="UpdateClassification">
+      <wsdl:input message="tns:UpdateClassificationSoapIn" />
+      <wsdl:output message="tns:UpdateClassificationSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getClassifications">
+      <wsdl:input message="tns:getClassificationsSoapIn" />
+      <wsdl:output message="tns:getClassificationsSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getClassification">
+      <wsdl:input message="tns:getClassificationSoapIn" />
+      <wsdl:output message="tns:getClassificationSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getPSSLAIDailyBillsPayment">
+      <wsdl:input message="tns:getPSSLAIDailyBillsPaymentSoapIn" />
+      <wsdl:output message="tns:getPSSLAIDailyBillsPaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getSMARTDailyBillspayment">
+      <wsdl:input message="tns:getSMARTDailyBillspaymentSoapIn" />
+      <wsdl:output message="tns:getSMARTDailyBillspaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getMALAYANDailyBillspayment">
+      <wsdl:documentation xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">indication means; 1 = Body Details, 0 = Footer</wsdl:documentation>
+      <wsdl:input message="tns:getMALAYANDailyBillspaymentSoapIn" />
+      <wsdl:output message="tns:getMALAYANDailyBillspaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getPAGIBIGDailyBillspayment">
+      <wsdl:input message="tns:getPAGIBIGDailyBillspaymentSoapIn" />
+      <wsdl:output message="tns:getPAGIBIGDailyBillspaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getNONECODailyBillspayment">
+      <wsdl:input message="tns:getNONECODailyBillspaymentSoapIn" />
+      <wsdl:output message="tns:getNONECODailyBillspaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getESAMELCODailyBillspayment">
+      <wsdl:input message="tns:getESAMELCODailyBillspaymentSoapIn" />
+      <wsdl:output message="tns:getESAMELCODailyBillspaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getMIGHTYDailyBillspayment">
+      <wsdl:input message="tns:getMIGHTYDailyBillspaymentSoapIn" />
+      <wsdl:output message="tns:getMIGHTYDailyBillspaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getANECODailyBillspayment">
+      <wsdl:input message="tns:getANECODailyBillspaymentSoapIn" />
+      <wsdl:output message="tns:getANECODailyBillspaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getAUBDailyBillspayment">
+      <wsdl:input message="tns:getAUBDailyBillspaymentSoapIn" />
+      <wsdl:output message="tns:getAUBDailyBillspaymentSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="getBatelec2DailyDatailsBillspayment">
+      <wsdl:input message="tns:getBatelec2DailyDatailsBillspaymentSoapIn" />
+      <wsdl:output message="tns:getBatelec2DailyDatailsBillspaymentSoapOut" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="MLhuillierSoap" type="tns:MLhuillierSoap">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="getCurrency">
+      <soap:operation soapAction="http://localhost/getCurrency" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getPartners">
+      <soap:operation soapAction="http://localhost/getPartners" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetMormonsDailyBillsPayment">
+      <soap:operation soapAction="http://localhost/GetMormonsDailyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetMormonsMonthlyBillsPayment">
+      <soap:operation soapAction="http://localhost/GetMormonsMonthlyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetManilaWaterRangeBillsPayment">
+      <soap:operation soapAction="http://localhost/GetManilaWaterRangeBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetMormonsDateRangeBillsPayment">
+      <soap:operation soapAction="http://localhost/GetMormonsDateRangeBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetVecoDailyDetailsBillsPayment">
+      <soap:operation soapAction="http://localhost/GetVecoDailyDetailsBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetVecoDailyFooterBillsPayment">
+      <soap:operation soapAction="http://localhost/GetVecoDailyFooterBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetVecoDailyHeaderBillsPayment">
+      <soap:operation soapAction="http://localhost/GetVecoDailyHeaderBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetGlobeDailyBillsPayment">
+      <soap:operation soapAction="http://localhost/GetGlobeDailyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetManilaWaterDailyBillsPayment">
+      <soap:operation soapAction="http://localhost/GetManilaWaterDailyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetNorkisDailyBillsPayment">
+      <soap:operation soapAction="http://localhost/GetNorkisDailyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetManilaDepositDailyBillsPayment">
+      <soap:operation soapAction="http://localhost/GetManilaDepositDailyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetPioneerDailyBillsPayment">
+      <soap:operation soapAction="http://localhost/GetPioneerDailyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetPalDailyHeaderBillsPayment">
+      <soap:operation soapAction="http://localhost/GetPalDailyHeaderBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetPalDailyDetailsBillsPayment">
+      <soap:operation soapAction="http://localhost/GetPalDailyDetailsBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetPalDailyFooterBillsPayment">
+      <soap:operation soapAction="http://localhost/GetPalDailyFooterBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetPLDTDailyHeaderBillsPayment">
+      <soap:operation soapAction="http://localhost/GetPLDTDailyHeaderBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetPLDTDailyDetailsBillspayment">
+      <soap:operation soapAction="http://localhost/GetPLDTDailyDetailsBillspayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetPLDTDailyFooterBillsPayment">
+      <soap:operation soapAction="http://localhost/GetPLDTDailyFooterBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetFDCDailyDetailsBillsPayment">
+      <soap:operation soapAction="http://localhost/GetFDCDailyDetailsBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getPalecoDailyDetailsBillsPayment">
+      <soap:operation soapAction="http://localhost/getPalecoDailyDetailsBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getBPWIDailyDetailsBillsPay">
+      <soap:operation soapAction="http://localhost/getBPWIDailyDetailsBillsPay" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getPhilHealthDailyIndividualDetailsBillsPayment">
+      <soap:operation soapAction="http://localhost/getPhilHealthDailyIndividualDetailsBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getCTBCHeader">
+      <soap:operation soapAction="http://localhost/getCTBCHeader" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getCTBCBody">
+      <soap:operation soapAction="http://localhost/getCTBCBody" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getCTBCFooter">
+      <soap:operation soapAction="http://localhost/getCTBCFooter" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getNECODailyBillspayment">
+      <soap:operation soapAction="http://localhost/getNECODailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getMCWDDailyBillspayment">
+      <soap:operation soapAction="http://localhost/getMCWDDailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getSubicWaterDailyBillspayment">
+      <soap:operation soapAction="http://localhost/getSubicWaterDailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="AddClassification">
+      <soap:operation soapAction="http://localhost/AddClassification" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateClassification">
+      <soap:operation soapAction="http://localhost/UpdateClassification" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getClassifications">
+      <soap:operation soapAction="http://localhost/getClassifications" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getClassification">
+      <soap:operation soapAction="http://localhost/getClassification" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getPSSLAIDailyBillsPayment">
+      <soap:operation soapAction="http://localhost/getPSSLAIDailyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getSMARTDailyBillspayment">
+      <soap:operation soapAction="http://localhost/getSMARTDailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getMALAYANDailyBillspayment">
+      <soap:operation soapAction="http://localhost/getMALAYANDailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getPAGIBIGDailyBillspayment">
+      <soap:operation soapAction="http://localhost/getPAGIBIGDailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getNONECODailyBillspayment">
+      <soap:operation soapAction="http://localhost/getNONECODailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getESAMELCODailyBillspayment">
+      <soap:operation soapAction="http://localhost/getESAMELCODailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getMIGHTYDailyBillspayment">
+      <soap:operation soapAction="http://localhost/getMIGHTYDailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getANECODailyBillspayment">
+      <soap:operation soapAction="http://localhost/getANECODailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getAUBDailyBillspayment">
+      <soap:operation soapAction="http://localhost/getAUBDailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getBatelec2DailyDatailsBillspayment">
+      <soap:operation soapAction="http://localhost/getBatelec2DailyDatailsBillspayment" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:binding name="MLhuillierSoap12" type="tns:MLhuillierSoap">
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="getCurrency">
+      <soap12:operation soapAction="http://localhost/getCurrency" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getPartners">
+      <soap12:operation soapAction="http://localhost/getPartners" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetMormonsDailyBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetMormonsDailyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetMormonsMonthlyBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetMormonsMonthlyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetManilaWaterRangeBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetManilaWaterRangeBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetMormonsDateRangeBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetMormonsDateRangeBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetVecoDailyDetailsBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetVecoDailyDetailsBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetVecoDailyFooterBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetVecoDailyFooterBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetVecoDailyHeaderBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetVecoDailyHeaderBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetGlobeDailyBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetGlobeDailyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetManilaWaterDailyBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetManilaWaterDailyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetNorkisDailyBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetNorkisDailyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetManilaDepositDailyBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetManilaDepositDailyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetPioneerDailyBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetPioneerDailyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetPalDailyHeaderBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetPalDailyHeaderBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetPalDailyDetailsBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetPalDailyDetailsBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetPalDailyFooterBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetPalDailyFooterBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetPLDTDailyHeaderBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetPLDTDailyHeaderBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetPLDTDailyDetailsBillspayment">
+      <soap12:operation soapAction="http://localhost/GetPLDTDailyDetailsBillspayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetPLDTDailyFooterBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetPLDTDailyFooterBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetFDCDailyDetailsBillsPayment">
+      <soap12:operation soapAction="http://localhost/GetFDCDailyDetailsBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getPalecoDailyDetailsBillsPayment">
+      <soap12:operation soapAction="http://localhost/getPalecoDailyDetailsBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getBPWIDailyDetailsBillsPay">
+      <soap12:operation soapAction="http://localhost/getBPWIDailyDetailsBillsPay" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getPhilHealthDailyIndividualDetailsBillsPayment">
+      <soap12:operation soapAction="http://localhost/getPhilHealthDailyIndividualDetailsBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getCTBCHeader">
+      <soap12:operation soapAction="http://localhost/getCTBCHeader" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getCTBCBody">
+      <soap12:operation soapAction="http://localhost/getCTBCBody" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getCTBCFooter">
+      <soap12:operation soapAction="http://localhost/getCTBCFooter" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getNECODailyBillspayment">
+      <soap12:operation soapAction="http://localhost/getNECODailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getMCWDDailyBillspayment">
+      <soap12:operation soapAction="http://localhost/getMCWDDailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getSubicWaterDailyBillspayment">
+      <soap12:operation soapAction="http://localhost/getSubicWaterDailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="AddClassification">
+      <soap12:operation soapAction="http://localhost/AddClassification" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="UpdateClassification">
+      <soap12:operation soapAction="http://localhost/UpdateClassification" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getClassifications">
+      <soap12:operation soapAction="http://localhost/getClassifications" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getClassification">
+      <soap12:operation soapAction="http://localhost/getClassification" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getPSSLAIDailyBillsPayment">
+      <soap12:operation soapAction="http://localhost/getPSSLAIDailyBillsPayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getSMARTDailyBillspayment">
+      <soap12:operation soapAction="http://localhost/getSMARTDailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getMALAYANDailyBillspayment">
+      <soap12:operation soapAction="http://localhost/getMALAYANDailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getPAGIBIGDailyBillspayment">
+      <soap12:operation soapAction="http://localhost/getPAGIBIGDailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getNONECODailyBillspayment">
+      <soap12:operation soapAction="http://localhost/getNONECODailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getESAMELCODailyBillspayment">
+      <soap12:operation soapAction="http://localhost/getESAMELCODailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getMIGHTYDailyBillspayment">
+      <soap12:operation soapAction="http://localhost/getMIGHTYDailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getANECODailyBillspayment">
+      <soap12:operation soapAction="http://localhost/getANECODailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getAUBDailyBillspayment">
+      <soap12:operation soapAction="http://localhost/getAUBDailyBillspayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="getBatelec2DailyDatailsBillspayment">
+      <soap12:operation soapAction="http://localhost/getBatelec2DailyDatailsBillspayment" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="MLhuillier">
+    <wsdl:documentation xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">MLKP Web Service</wsdl:documentation>
+    <wsdl:port name="MLhuillierSoap" binding="tns:MLhuillierSoap">
+      <soap:address location="https://192.168.12.16/developer/Partners/Admin/7.41/WSBPFeedbackFile/Service.asmx" />
+    </wsdl:port>
+    <wsdl:port name="MLhuillierSoap12" binding="tns:MLhuillierSoap12">
+      <soap12:address location="https://192.168.12.16/developer/Partners/Admin/7.41/WSBPFeedbackFile/Service.asmx" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

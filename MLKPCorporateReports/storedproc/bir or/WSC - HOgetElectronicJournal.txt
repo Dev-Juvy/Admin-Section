@@ -1,0 +1,53 @@
+DELIMITER $$
+
+USE `kpORNO`$$
+
+DROP PROCEDURE IF EXISTS `HOgetElectronicJournal`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetElectronicJournal`(IN accountCode VARCHAR(30),IN _datefrom VARCHAR(15),IN _dateto VARCHAR(15))
+BEGIN
+DECLARE _monthdate VARCHAR(4);
+DECLARE _year VARCHAR(4);
+
+DROP  TEMPORARY  TABLE IF EXISTS kpORNO.electronicjournal;
+CREATE  TEMPORARY TABLE kpORNO.electronicjournal(mlcompany VARCHAR(100),mladdress VARCHAR(100),accountname VARCHAR(100),address VARCHAR(100),
+tin VARCHAR(100),ACR VARCHAR(100),SN VARCHAR(100),PN VARCHAR(100),MN VARCHAR(100),sendername VARCHAR(100),transTin VARCHAR(100),
+senderaddress VARCHAR(100),businessStyle VARCHAR(100),transVat VARCHAR(100),ServiceFee VARCHAR(100),vatableAmount VARCHAR(100),vat VARCHAR(100),
+orno VARCHAR(100),operator VARCHAR(100),kptn VARCHAR(100),transdate VARCHAR(100),mltin VARCHAR(100),mlaccno VARCHAR(100),validdate VARCHAR(100),
+permittouse VARCHAR(100),svrdt VARCHAR(100),isdisplay VARCHAR(100),principal VARCHAR(100));
+
+WHILE DATE(_datefrom) <= DATE(_dateto) DO
+SET _monthdate = DATE_FORMAT(_datefrom,'%m%d');
+SET _year = DATE_FORMAT(_datefrom,'%Y');
+		
+SET @n_query= CONCAT('insert into kpORNO.electronicjournal(mlcompany ,mladdress ,accountname ,address ,tin ,ACR ,SN ,PN ,MN ,sendername ,
+transTin ,senderaddress ,businessStyle ,transVat ,ServiceFee ,vatableAmount ,vat ,orno ,operator ,kptn ,transdate ,mltin ,
+mlaccno ,validdate ,permittouse ,svrdt ,isdisplay ,principal )'
+'SELECT   
+''MICHEL J. LHUILLIER FINANCIAL SVCS (PAWNSHOPS) INC'' AS mlcompany, ''58 COLON ST., STO. NIÑ0, CEBU CITY'' AS mladdress,
+b.accountname,b.address,concat(a.tin,''-'',b.locationcode) as tin, 
+b.ACR,b.SN,b.PN,b.MN,s.sendername,c.transTin,s.senderaddress,c.businessStyle,(s.charge/1.12) as transVat, 
+s.charge as ServiceFee, ((s.charge/1.12)*0.12) as vatableAmount,a.vat, c.orno, CONCAT(firstname,'' '',middlename,'' '',lastname) AS operator,s.kptn,s.transdate,
+concat(a.tin,''-'',b.locationcode)  AS mltin,''-'' AS mlaccno,DATE_ADD(s.transdate,INTERVAL 5 YEAR) AS validdate,b.permitToUse,NOW() AS svrdt,c.isDisplay,c.principal
+FROM  kppartners.sendout',_monthdate,' s
+INNER JOIN kpadminpartners.accountlist AS b ON  b.accountid = s.accountcode
+INNER JOIN kpORNO.orDetails AS c  ON c.accountid = s.accountcode AND s.referenceno=c.refno
+INNER JOIN kpadminpartners.accountdetail a ON a.accountid = s.accountcode
+INNER JOIN `kpadminpartners`.`wssubpartnersusers` d ON d.subaccountid=s.accountcode AND d.userid=s.operatorid
+WHERE a.accountid=''',accountCode,''' and date(c.datecreated)=date(''',_datefrom,''') and year(s.transdate)=',_year,' order by transdate asc;
+');													
+PREPARE StrSQL FROM @n_query;
+EXECUTE StrSQL;
+SET _datefrom = DATE_ADD(_datefrom, INTERVAL 1 DAY);                
+END WHILE;
+
+
+SET @sql3=CONCAT('select mlcompany ,mladdress ,accountname ,address ,tin ,ACR ,SN ,PN ,MN ,sendername ,
+transTin ,senderaddress ,businessStyle ,transVat ,ServiceFee ,vatableAmount ,vat ,orno ,operator ,kptn ,transdate ,mltin ,
+mlaccno ,validdate ,permittouse ,svrdt ,isdisplay ,principal 
+from kpORNO.electronicjournal; ');
+PREPARE gtpo3 FROM @sql3;
+EXECUTE gtpo3;
+END$$
+
+DELIMITER ;

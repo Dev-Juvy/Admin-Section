@@ -1,0 +1,42 @@
+DELIMITER $$
+
+USE `ecommercemerchants`$$
+
+DROP PROCEDURE IF EXISTS `MLshop`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `MLshop`(IN _datefrom VARCHAR(15),IN _dateto VARCHAR(15))
+BEGIN
+DECLARE _monthdate VARCHAR(4);
+DECLARE _year VARCHAR(4);
+DECLARE _month  VARCHAR(2);
+DROP  TEMPORARY  TABLE IF EXISTS ecommercemerchants.shop;
+CREATE  TEMPORARY TABLE ecommercemerchants.shop(flag VARCHAR(100),transdate VARCHAR(100),sendername VARCHAR(100),walletno VARCHAR(100),receivername VARCHAR(100),
+orderno VARCHAR(100),kptn VARCHAR(100),shippingfee VARCHAR(100),referenceno VARCHAR(100),commission VARCHAR(100),currency VARCHAR(100),
+STATUS VARCHAR(100),quantity VARCHAR(100), DestinationLocation VARCHAR (100));
+WHILE DATE(_datefrom) <= DATE(_dateto) DO
+SET _monthdate = DATE_FORMAT(_datefrom,'%m%d');
+SET _month = DATE_FORMAT(_datefrom,'%m');
+SET _year = DATE_FORMAT(_datefrom,'%Y');
+ SET @n_query = CONCAT('insert into ecommercemerchants.shop(flag,transdate,sendername,walletno,receivername,orderno,kptn,shippingfee,
+referenceno,commission,currency,status,quantity,DestinationLocation)'
+ 'SELECT '''' as flag,
+a.transdate,'''' AS sendername,a.walletno,'''' AS receivername,
+a.orderid AS orderno,traceno AS kptn,a.totalprice AS shippingfee,
+traceno AS referenceno,0 AS commission,currency,a.status,a.quantity,
+IF(DestinationLocation IS NULL,pickupBranch,DestinationLocation) AS DestinationLocation
+ FROM `ecommercelogs',_year,'`.`transactionslogs',_year,'',_month,'` a
+ inner join `ecommercetransactions',_year,'`.`ecommercetransactions',_monthdate,'` b on b.orderid=a.orderid
+ WHERE (traceno LIKE (''%ecw%'') or traceno LIKE (''%mls%'')) AND DATE_FORMAT(a.transdate,''%m%d'')=',_monthdate,' GROUP BY a.orderid ;
+ ');
+PREPARE StrSQL FROM @n_query;
+EXECUTE StrSQL;
+SET _datefrom = DATE_ADD(_datefrom, INTERVAL 1 DAY);                
+END WHILE;
+SET @sql3=CONCAT('select flag,transdate,sendername,walletno,receivername,orderno,kptn,shippingfee,
+referenceno,commission,currency,status,quantity,
+if(DestinationLocation is null,'''',DestinationLocation)  as DestinationLocation from ecommercemerchants.shop; ');
+PREPARE gtpo3 FROM @sql3;
+EXECUTE gtpo3;
+END$$
+
+DELIMITER ;

@@ -1,0 +1,18 @@
+DELIMITER $$
+
+USE `kpmobile`$$
+
+DROP PROCEDURE IF EXISTS `HOgetWalletBeginBal`$$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `HOgetWalletBeginBal`()
+BEGIN	
+SET @n_query= CONCAT('select walletno,username,custid,trim(customername) as customername,sum(beginningbal) AS beginningbal  
+from (SELECT walletno,username,custid,CONCAT(lastname,'', '',firstname,'' '',middlename) AS customername,
+CONVERT(AES_DECRYPT(balance,''mlinc1234''), DECIMAL(11,2)) AS beginningbal  
+FROM `kpmobile`.`mobileaccounts` where username<>'''' and username is not null )x where customername is not null group by username,customername order by customername asc;
+');	 
+PREPARE StrSQL FROM @n_query;
+EXECUTE StrSQL;
+END$$
+
+DELIMITER ;

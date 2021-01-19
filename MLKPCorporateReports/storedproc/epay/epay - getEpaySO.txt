@@ -1,0 +1,72 @@
+
+
+USE `epayaccounts`;
+
+
+/* Procedure structure for procedure `getsendoutBillspayment` */
+
+DROP PROCEDURE IF EXISTS  `getEpaySO` ;
+
+DELIMITER $$
+
+CREATE DEFINER=`root`@`%` PROCEDURE `getEpaySO`(IN _tblname VARCHAR(4),IN _accountid VARCHAR(15),IN _year VARCHAR(5),IN _rcode VARCHAR(5),IN _acode VARCHAR(5),IN _bcode VARCHAR(5),IN _zcode VARCHAR(5),IN _oldzcode VARCHAR(5))
+BEGIN
+
+IF _rcode <> '' AND _acode <> '' AND _bcode <> '' THEN -- BY BRANCH
+SET @SQLStmt = CONCAT('SELECT 
+TIMESTAMP AS DATETIME,'''' AS Controlno,kptn AS ReferenceNo,a.accountnumber AS AccountNo,AccountName, 
+amount AS AmountPaid,0 AS CCharge,0 AS PCharge,c.branchname AS MLOutlet,a.zonecode AS MLZoneCode,Operator,
+sendername AS Payer,senderaddress AS Address,senderphone AS ContactNo,'''' AS OtherDetails,'''' AS RemoteId,
+'''' AS RemoteZoneCode ,'''' AS RemoteOperator,'''' AS CancelReason,''S'' AS CDType,'''' AS Cancelleddate,
+accountname AS partnername,currency,0 AS adjPHPCount,0 AS adjPHPprincipal,0 AS adjUSDCount,0 AS adjUSDprincipal,
+'''' AS assbranch,'''' AS assZoneCode,'''' AS assoperator,'''' AS Assbranchname,'''' AS assFullName,operator AS operatorid
+FROM `epayment',_year,'`.`epaytran',_tblname,'` a
+INNER JOIN `epayaccounts`.`accountlist` b ON b.accountnumber=a.accountnumber
+INNER JOIN kpusers.branches c ON c.branchcode=',_bcode,' AND (c.zonecode=',_zcode,' and c.oldzonecode=',_oldzcode,')
+WHERE if(''',_accountid,'''<>'''',a.accountnumber=''',_accountid,''',1) and c.branchcode=a.branchcode AND (c.zonecode=a.zonecode OR c.oldzonecode=a.zonecode);  
+');
+ELSEIF _rcode<>'' AND _acode='' AND _bcode='' THEN -- BY REGION
+SET @SQLStmt = CONCAT('SELECT 
+TIMESTAMP AS DATETIME,'''' AS Controlno,kptn AS ReferenceNo,a.accountnumber AS AccountNo,AccountName, 
+amount AS AmountPaid,0 AS CCharge,0 AS PCharge,c.branchname AS MLOutlet,a.zonecode AS MLZoneCode,Operator,
+sendername AS Payer,senderaddress AS Address,senderphone AS ContactNo,'''' AS OtherDetails,'''' AS RemoteId,
+'''' AS RemoteZoneCode ,'''' AS RemoteOperator,'''' AS CancelReason,''S'' AS CDType,'''' AS Cancelleddate,
+accountname AS partnername,currency,0 AS adjPHPCount,0 AS adjPHPprincipal,0 AS adjUSDCount,0 AS adjUSDprincipal,
+'''' AS assbranch,'''' AS assZoneCode,'''' AS assoperator,'''' AS Assbranchname,'''' AS assFullName,operator AS operatorid
+FROM `epayment',_year,'`.`epaytran',_tblname,'` a
+INNER JOIN `epayaccounts`.`accountlist` b ON b.accountnumber=a.accountnumber
+INNER JOIN kpusers.branches c ON c.branchcode=a.branchcode AND (c.zonecode=',_zcode,' and c.oldzonecode=',_oldzcode,') and c.regioncode=',_rcode,'
+WHERE if(''',_accountid,'''<>'''',a.accountnumber=''',_accountid,''',1) and (c.zonecode=a.zonecode OR c.oldzonecode=a.zonecode);  
+');
+ELSEIF _rcode<>'' AND _acode<>'' AND _bcode='' THEN -- BY AREA
+SET @SQLStmt = CONCAT('SELECT 
+TIMESTAMP AS DATETIME,'''' AS Controlno,kptn AS ReferenceNo,a.accountnumber AS AccountNo,AccountName, 
+amount AS AmountPaid,0 AS CCharge,0 AS PCharge,c.branchname AS MLOutlet,a.zonecode AS MLZoneCode,Operator,
+sendername AS Payer,senderaddress AS Address,senderphone AS ContactNo,'''' AS OtherDetails,'''' AS RemoteId,
+'''' AS RemoteZoneCode ,'''' AS RemoteOperator,'''' AS CancelReason,''S'' AS CDType,'''' AS Cancelleddate,
+accountname AS partnername,currency,0 AS adjPHPCount,0 AS adjPHPprincipal,0 AS adjUSDCount,0 AS adjUSDprincipal,
+'''' AS assbranch,'''' AS assZoneCode,'''' AS assoperator,'''' AS Assbranchname,'''' AS assFullName,operator AS operatorid
+FROM `epayment',_year,'`.`epaytran',_tblname,'` a
+INNER JOIN `epayaccounts`.`accountlist` b ON b.accountnumber=a.accountnumber
+INNER JOIN kpusers.branches c ON c.branchcode=a.branchcode AND (c.zonecode=',_zcode,' and c.oldzonecode=',_oldzcode,') and c.regioncode=',_rcode,' and c.areacode=''',_acode,'''
+WHERE if(''',_accountid,'''<>'''',a.accountnumber=''',_accountid,''',1) and (c.zonecode=a.zonecode OR c.oldzonecode=a.zonecode); 
+');
+ELSE -- CAD/PARTNERS USER
+SET @SQLStmt = CONCAT('SELECT 
+TIMESTAMP AS DATETIME,'''' AS Controlno,kptn AS ReferenceNo,a.accountnumber AS AccountNo,AccountName, 
+amount AS AmountPaid,0 AS CCharge,0 AS PCharge,c.branchname AS MLOutlet,a.zonecode AS MLZoneCode,Operator,
+sendername AS Payer,senderaddress AS Address,senderphone AS ContactNo,'''' AS OtherDetails,'''' AS RemoteId,
+'''' AS RemoteZoneCode ,'''' AS RemoteOperator,'''' AS CancelReason,''S'' AS CDType,'''' AS Cancelleddate,
+accountname AS partnername,currency,0 AS adjPHPCount,0 AS adjPHPprincipal,0 AS adjUSDCount,0 AS adjUSDprincipal,
+'''' AS assbranch,'''' AS assZoneCode,'''' AS assoperator,'''' AS Assbranchname,'''' AS assFullName,operator AS operatorid
+FROM `epayment',_year,'`.`epaytran',_tblname,'` a
+INNER JOIN `epayaccounts`.`accountlist` b ON b.accountnumber=a.accountnumber
+INNER JOIN kpusers.branches c ON c.branchcode=a.branchcode AND (c.zonecode=a.zonecode OR c.oldzonecode=a.zonecode)
+WHERE a.accountnumber=''',_accountid,'''; 
+');
+END IF; 
+PREPARE Stmt FROM @SQLStmt;
+EXECUTE Stmt;
+DEALLOCATE PREPARE Stmt;
+END $$
+DELIMITER ;
